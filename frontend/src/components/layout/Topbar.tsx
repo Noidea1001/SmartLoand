@@ -1,12 +1,29 @@
 import { useEffect, useRef, useState } from "react";
-import { Bell, LogOut, Menu, Moon, Palette, Sun } from "lucide-react";
+import {
+  Bell,
+  LogOut,
+  Menu,
+  Moon,
+  Palette,
+  Sun,
+  Volume2,
+  VolumeX,
+  Globe,
+  Compass,
+  Search,
+  Calculator,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useLocation, useNavigate } from "react-router-dom";
 import { listNotifications, markNotificationRead } from "../../api/notifications";
 import { setLocale } from "../../i18n/i18n";
 import { useAuth } from "../../context/AuthContext";
 import { useLayout } from "../../context/LayoutContext";
 import { useTheme } from "../../context/ThemeContext";
+import { useToast } from "../../context/ToastContext";
+import { useBranding } from "../../context/BrandingContext";
 import type { NotificationItem } from "../../api/types";
+import LoanCalculatorModal from "../calculator/LoanCalculatorModal";
 
 const POLL_INTERVAL_MS = 30000;
 
@@ -24,13 +41,18 @@ const PRESET_THEMES = [
 ];
 
 export default function Topbar() {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const location = useLocation();
+  const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { isMobile, toggleSidebar } = useLayout();
   const { mode, toggleMode, colors, setColors, resetColors } = useTheme();
+  const { soundEnabled, toggleSound } = useToast();
+  const { websiteName } = useBranding();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [notifOpen, setNotifOpen] = useState(false);
   const [themeOpen, setThemeOpen] = useState(false);
+  const [calcOpen, setCalcOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
   const themeRef = useRef<HTMLDivElement>(null);
 
@@ -57,8 +79,24 @@ export default function Topbar() {
       if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false);
       if (themeRef.current && !themeRef.current.contains(e.target as Node)) setThemeOpen(false);
     }
+    
+    function onKeyDown(e: KeyboardEvent) {
+      if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") return;
+      if (e.key === "/") {
+        e.preventDefault();
+        document.getElementById("global-search-input")?.focus();
+      } else if (e.key.toLowerCase() === "c") {
+        e.preventDefault();
+        setCalcOpen((prev) => !prev);
+      }
+    }
+
     document.addEventListener("mousedown", onClickOutside);
-    return () => document.removeEventListener("mousedown", onClickOutside);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onClickOutside);
+      document.removeEventListener("keydown", onKeyDown);
+    };
   }, []);
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
@@ -72,153 +110,277 @@ export default function Topbar() {
 
   const userInitials = user?.name
     ? user.name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2)
-    : "U";
+    : "SL";
+
+  // Breadcrumbs derivation
+  function getBreadcrumb() {
+    const p = location.pathname;
+    if (p === "/") return { section: t("sections.overview"), title: t("nav.dashboard") };
+    if (p === "/loans") return { section: t("sections.finance"), title: t("nav.loans") };
+    if (p === "/repayments") return { section: t("sections.finance"), title: t("nav.repayments") };
+    if (p.startsWith("/loans/pending-approval")) return { section: t("sections.finance"), title: t("nav.pendingApprovals") };
+    if (p.startsWith("/loans/my-requests")) return { section: t("sections.finance"), title: t("nav.myRequests") };
+    if (p.startsWith("/loans/")) return { section: t("sections.finance"), title: t("loans.newLoan") };
+    if (p === "/clients") return { section: t("sections.directory"), title: t("nav.clients") };
+    if (p === "/products") return { section: t("sections.catalog"), title: t("nav.products") };
+    if (p === "/roles") return { section: t("sections.admin"), title: t("nav.roles") };
+    if (p === "/activity-log") return { section: t("sections.system"), title: t("nav.activityLog") };
+    if (p === "/settings") return { section: t("sections.system"), title: t("nav.settings") };
+    return { section: websiteName, title: "Enterprise" };
+  }
+
+  const breadcrumb = getBreadcrumb();
 
   return (
     <header className="topbar">
-      {isMobile && (
-        <button onClick={toggleSidebar} className="topbar-btn" style={{ marginRight: "auto" }} aria-label="Open menu">
-          <Menu size={20} />
-        </button>
-      )}
+      {/* Left: Mobile Toggle & Executive Breadcrumbs */}
+      <div style={{ display: "flex", alignItems: "center", gap: 14, flexShrink: 0 }}>
+        {isMobile && (
+          <button onClick={toggleSidebar} className="topbar-btn" aria-label="Open menu">
+            <Menu size={20} />
+          </button>
+        )}
 
-      {!isMobile && (
-        <div style={{ marginRight: "auto", display: "flex", alignItems: "center" }}>
-          {/* Breadcrumb area — could be expanded later */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, whiteSpace: "nowrap" }}>
+          <span
+            style={{
+              color: "var(--theme-nav-text-muted)",
+              fontWeight: 500,
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            <Compass size={15} style={{ opacity: 0.7 }} />
+            <span>{breadcrumb.section}</span>
+          </span>
+          <span style={{ color: "var(--theme-nav-border)", opacity: 0.8 }}>/</span>
+          <span
+            style={{
+              color: "var(--theme-nav-text)",
+              fontWeight: 700,
+              letterSpacing: "-0.01em",
+            }}
+          >
+            {breadcrumb.title}
+          </span>
         </div>
-      )}
+      </div>
 
-      <select
-        value={i18n.language}
-        onChange={(e) => setLocale(e.target.value as "en" | "km")}
-        className="topbar-lang-select"
-      >
-        <option value="en">EN</option>
-        <option value="km">KM</option>
-      </select>
+      {/* Center: Global Search */}
+      <div style={{ flex: 1, display: "flex", justifyContent: "center", padding: "0 24px" }}>
+        <div style={{ position: "relative", width: "100%", maxWidth: 360 }}>
+          <Search size={16} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--color-text-muted)" }} />
+          <input
+            id="global-search-input"
+            type="text"
+            placeholder={t("topbar.searchPlaceholder")}
+            style={{
+              width: "100%",
+              padding: "8px 16px 8px 36px",
+              borderRadius: "var(--radius-full)",
+              border: "1px solid var(--color-border)",
+              background: "var(--color-surface-sunken)",
+              fontSize: 13,
+              outline: "none",
+              color: "var(--color-text)",
+              transition: "all 0.2s ease"
+            }}
+            onFocus={(e) => {
+              e.target.style.background = "var(--color-surface)";
+              e.target.style.borderColor = "var(--color-accent)";
+              e.target.style.boxShadow = "0 0 0 3px var(--color-accent-soft)";
+            }}
+            onBlur={(e) => {
+              e.target.style.background = "var(--color-surface-sunken)";
+              e.target.style.borderColor = "var(--color-border)";
+              e.target.style.boxShadow = "none";
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && e.currentTarget.value.trim()) {
+                navigate(`/clients?search=${encodeURIComponent(e.currentTarget.value.trim())}`);
+              }
+            }}
+          />
+        </div>
+      </div>
 
-      <div className="topbar-divider" />
+      {/* Right: Controls & User Profile */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        {/* Language selector */}
+        <div style={{ display: "flex", alignItems: "center", position: "relative" }}>
+          <select
+            value={i18n.language}
+            onChange={(e) => setLocale(e.target.value as "en" | "km")}
+            className="topbar-lang-select"
+            title="Switch Language"
+          >
+            <option value="en">English (EN)</option>
+            <option value="km">ភាសាខ្មែរ (KM)</option>
+          </select>
+        </div>
 
-      {/* Theme toggle */}
-      <button onClick={toggleMode} className="topbar-btn" aria-label="Toggle dark mode" title={mode === "dark" ? "Switch to light mode" : "Switch to dark mode"}>
-        {mode === "dark" ? <Sun size={18} /> : <Moon size={18} />}
-      </button>
-
-      {/* Theme customizer */}
-      <div style={{ position: "relative" }} ref={themeRef}>
+        {/* Loan Calculator / Simulator */}
         <button
-          onClick={() => { setThemeOpen((o) => !o); setNotifOpen(false); }}
+          onClick={() => setCalcOpen(true)}
           className="topbar-btn"
-          aria-label="Theme customizer"
-          title="Customize colors"
+          aria-label="Smart Loan Simulator"
+          title="Smart Loan Simulator (Press 'C')"
         >
-          <Palette size={18} />
+          <Calculator size={18} />
         </button>
 
-        {themeOpen && (
-          <div className="theme-panel card">
-            <div className="theme-panel-title">Theme Colors</div>
+        <div className="topbar-divider" />
 
-            <div className="theme-color-row">
-              <span className="theme-color-label">Navbar</span>
-              <input
-                type="color"
-                className="theme-color-input"
-                value={colors.navColor}
-                onChange={(e) => setColors({ navColor: e.target.value })}
-              />
-            </div>
+        {/* Audio cue toggle */}
+        <button
+          onClick={toggleSound}
+          className="topbar-btn"
+          aria-label="Toggle toast audio cues"
+          title={soundEnabled ? "Alert Audio: ON (click to mute)" : "Alert Audio: MUTED (click to unmute)"}
+        >
+          {soundEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
+        </button>
 
-            <div className="theme-color-row">
-              <span className="theme-color-label">Sidebar</span>
-              <input
-                type="color"
-                className="theme-color-input"
-                value={colors.sidebarColor}
-                onChange={(e) => setColors({ sidebarColor: e.target.value })}
-              />
-            </div>
+        {/* Theme toggle */}
+        <button
+          onClick={toggleMode}
+          className="topbar-btn"
+          aria-label="Toggle dark mode"
+          title={mode === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+        >
+          {mode === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+        </button>
 
-            <div className="theme-color-row">
-              <span className="theme-color-label">Buttons / Accent</span>
-              <input
-                type="color"
-                className="theme-color-input"
-                value={colors.buttonColor}
-                onChange={(e) => setColors({ buttonColor: e.target.value })}
-              />
-            </div>
+        {/* Theme customizer */}
+        <div style={{ position: "relative" }} ref={themeRef}>
+          <button
+            onClick={() => { setThemeOpen((o) => !o); setNotifOpen(false); }}
+            className="topbar-btn"
+            aria-label="Theme customizer"
+            title="Customize brand colors"
+          >
+            <Palette size={18} />
+          </button>
 
-            <div className="theme-panel-title" style={{ marginTop: 4 }}>Presets</div>
-            <div className="theme-presets">
-              {PRESET_THEMES.map((preset) => (
-                <button
-                  key={preset.label}
-                  className={`theme-preset-btn${
-                    colors.buttonColor === preset.button ? " active" : ""
-                  }`}
-                  style={{ background: preset.button }}
-                  onClick={() => setColors({ navColor: preset.nav, sidebarColor: preset.sidebar, buttonColor: preset.button })}
-                  title={preset.label}
+          {themeOpen && (
+            <div className="theme-panel card">
+              <div className="theme-panel-title">{t("topbar.themeCustomizer")}</div>
+
+              <div className="theme-color-row">
+                <span className="theme-color-label">{t("topbar.navbar")}</span>
+                <input
+                  type="color"
+                  className="theme-color-input"
+                  value={colors.navColor}
+                  onChange={(e) => setColors({ navColor: e.target.value })}
                 />
+              </div>
+
+              <div className="theme-color-row">
+                <span className="theme-color-label">{t("topbar.sidebar")}</span>
+                <input
+                  type="color"
+                  className="theme-color-input"
+                  value={colors.sidebarColor}
+                  onChange={(e) => setColors({ sidebarColor: e.target.value })}
+                />
+              </div>
+
+              <div className="theme-color-row">
+                <span className="theme-color-label">{t("topbar.primaryAccent")}</span>
+                <input
+                  type="color"
+                  className="theme-color-input"
+                  value={colors.buttonColor}
+                  onChange={(e) => setColors({ buttonColor: e.target.value })}
+                />
+              </div>
+
+              <div className="theme-panel-title" style={{ marginTop: 6 }}>{t("topbar.colorPresets")}</div>
+              <div className="theme-presets">
+                {PRESET_THEMES.map((preset) => (
+                  <button
+                    key={preset.label}
+                    className={`theme-preset-btn${
+                      colors.buttonColor === preset.button ? " active" : ""
+                    }`}
+                    style={{ background: preset.button }}
+                    onClick={() => setColors({ navColor: preset.nav, sidebarColor: preset.sidebar, buttonColor: preset.button })}
+                    title={preset.label}
+                  />
+                ))}
+              </div>
+
+              <button
+                className="btn"
+                style={{ width: "100%", marginTop: 12, fontSize: 13 }}
+                onClick={resetColors}
+              >
+                {t("topbar.resetDefault")}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Notifications */}
+        <div style={{ position: "relative" }} ref={notifRef}>
+          <button
+            onClick={() => { setNotifOpen((o) => !o); setThemeOpen(false); }}
+            className="topbar-btn"
+            aria-label="Notifications"
+            title="System notifications"
+          >
+            <Bell size={18} />
+            {unreadCount > 0 && <span className="topbar-badge" />}
+          </button>
+
+          {notifOpen && (
+            <div className="notification-panel card">
+              <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--color-border)", fontSize: 14, fontWeight: 700 }}>
+                {t("topbar.notifications")}
+              </div>
+              {notifications.length === 0 && (
+                <div style={{ padding: "24px 18px", fontSize: 13.5, color: "var(--color-text-muted)", textAlign: "center" }}>
+                  {t("topbar.noNotifications")}
+                </div>
+              )}
+              {notifications.map((n) => (
+                <div
+                  key={n.id}
+                  onClick={() => handleNotificationClick(n)}
+                  className={`notification-item${!n.is_read ? " notification-unread" : ""}`}
+                >
+                  {n.message}
+                </div>
               ))}
             </div>
+          )}
+        </div>
 
-            <button
-              className="btn"
-              style={{ width: "100%", marginTop: 12, fontSize: 12 }}
-              onClick={resetColors}
-            >
-              Reset to Default
-            </button>
+        <div className="topbar-divider" />
+
+        {/* User Profile Chip */}
+        <div className="topbar-user" title={`Logged in as ${user?.name || "User"}`}>
+          <div className="topbar-avatar">{userInitials}</div>
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <span className="topbar-username">{user?.name || "User"}</span>
+            <span style={{ fontSize: 11, color: "var(--color-accent-text)", fontWeight: 600, lineHeight: 1 }}>
+              {t("topbar.administrator")}
+            </span>
           </div>
-        )}
-      </div>
+        </div>
 
-      {/* Notifications */}
-      <div style={{ position: "relative" }} ref={notifRef}>
-        <button
-          onClick={() => { setNotifOpen((o) => !o); setThemeOpen(false); }}
-          className="topbar-btn"
-          aria-label="Notifications"
-        >
-          <Bell size={18} />
-          {unreadCount > 0 && <span className="topbar-badge" />}
+        <button onClick={logout} className="topbar-btn" aria-label="Log out" title="Sign out">
+          <LogOut size={18} />
         </button>
-
-        {notifOpen && (
-          <div className="notification-panel card">
-            <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--color-border)", fontSize: 13, fontWeight: 600 }}>
-              Notifications
-            </div>
-            {notifications.length === 0 && (
-              <div style={{ padding: "20px 16px", fontSize: 13, color: "var(--color-text-muted)", textAlign: "center" }}>
-                No notifications
-              </div>
-            )}
-            {notifications.map((n) => (
-              <div
-                key={n.id}
-                onClick={() => handleNotificationClick(n)}
-                className={`notification-item${!n.is_read ? " notification-unread" : ""}`}
-              >
-                {n.message}
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
-      <div className="topbar-divider" />
-
-      <div className="topbar-user">
-        <div className="topbar-avatar">{userInitials}</div>
-        <span className="topbar-username">{user?.name}</span>
-      </div>
-
-      <button onClick={logout} className="topbar-btn" aria-label="Log out" title="Sign out">
-        <LogOut size={18} />
-      </button>
+      {/* Global Smart Loan Simulator Modal */}
+      <LoanCalculatorModal
+        isOpen={calcOpen}
+        onClose={() => setCalcOpen(false)}
+      />
     </header>
   );
 }
