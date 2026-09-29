@@ -31,6 +31,9 @@ class TenantSettings(Base):
     grace_period_days: Mapped[int] = mapped_column(default=3)
     late_fee_percent: Mapped[float] = mapped_column(default=2.0)
     locale: Mapped[str] = mapped_column(String(5), default="en")
+    website_name: Mapped[str] = mapped_column(String(255), default="Smart Loan Platform")
+    company_name: Mapped[str] = mapped_column(String(255), default="Smart Loan Enterprise")
+    tagline: Mapped[str] = mapped_column(String(255), default="Credit Suite")
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
 
 

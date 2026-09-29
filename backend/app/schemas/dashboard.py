@@ -14,3 +14,13 @@ class SeriesResponse(BaseModel):
     granularity: str
     currency: str
     points: list[SeriesPoint]
+
+
+class DashboardSummary(BaseModel):
+    total_active_loans: int
+    total_disbursed: str
+    total_collected: str
+    pending_approvals: int
+    overdue_loans: int
+    total_clients: int
+    currency: str

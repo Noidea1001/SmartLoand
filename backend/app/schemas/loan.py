@@ -16,6 +16,8 @@ class LoanCreate(BaseModel):
     start_date: date
     grace_period_days: int | None = None
     late_fee_percent: Decimal | None = None
+    collateral_info: dict | None = None
+    guarantor_info: dict | None = None
 
 
 class LoanOut(BaseModel):
@@ -31,6 +33,8 @@ class LoanOut(BaseModel):
     status: str
     grace_period_days: int
     late_fee_percent: Decimal
+    collateral_info: dict | None = None
+    guarantor_info: dict | None = None
     created_at: datetime
 
     class Config:
@@ -73,3 +77,9 @@ class RestructureRequest(BaseModel):
 
 class WriteOffRequest(BaseModel):
     reason: str
+
+
+class LoanSecurityUpdate(BaseModel):
+    collateral_info: dict | None = None
+    guarantor_info: dict | None = None
+

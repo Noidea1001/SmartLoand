@@ -5,10 +5,20 @@ from sqlalchemy.orm import Session
 
 from app.core.deps import CurrentUser, require_permission
 from app.db.session import get_db
-from app.schemas.dashboard import SeriesPoint, SeriesResponse
+from app.schemas.dashboard import SeriesPoint, SeriesResponse, DashboardSummary
 from app.services import analytics
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
+
+
+@router.get("/summary", response_model=DashboardSummary)
+def get_summary(
+    currency: str = Query("USD", pattern="^(USD|KHR)$"),
+    current_user: CurrentUser = Depends(require_permission("dashboard.view")),
+    db: Session = Depends(get_db),
+):
+    summary_data = analytics.get_summary(db, current_user.tenant_id, currency)
+    return DashboardSummary(**summary_data)
 
 
 @router.get("/series", response_model=SeriesResponse)
@@ -22,7 +32,7 @@ def get_series(
     db: Session = Depends(get_db),
 ):
     try:
-        rows = analytics.get_series(db, current_user.tenant_id, metric, granularity, date_from, date_to)
+        rows = analytics.get_series(db, current_user.tenant_id, metric, granularity, date_from, date_to, currency)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 

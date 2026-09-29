@@ -30,6 +30,9 @@ class Loan(Base):
     grace_period_days: Mapped[int] = mapped_column(default=3)
     late_fee_percent: Mapped[float] = mapped_column(Numeric(6, 3), default=2.0)
 
+    collateral_info: Mapped[dict | None] = mapped_column(JSON, default=dict, nullable=True)
+    guarantor_info: Mapped[dict | None] = mapped_column(JSON, default=dict, nullable=True)
+
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     requested_by_user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     created_by_user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)

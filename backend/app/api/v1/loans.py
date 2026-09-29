@@ -12,8 +12,8 @@ from app.models.installment import Installment
 from app.models.loan import Loan, LoanApproval
 from app.models.user import User
 from app.schemas.loan import (
-    InstallmentOut, LoanApprovalDecision, LoanCreate, LoanOut, PaginatedLoans,
-    PrepaymentRequest, RestructureRequest, WriteOffRequest,
+    InstallmentOut, LoanApprovalDecision, LoanCreate, LoanOut, LoanSecurityUpdate,
+    PaginatedLoans, PrepaymentRequest, RestructureRequest, WriteOffRequest,
 )
 from app.services import loan_approval, loan_lifecycle
 
@@ -198,3 +198,82 @@ def delete_loan(
     loan = _get_loan_or_404(db, loan_id, current_user.tenant_id)
     loan.deleted_at = datetime.utcnow()
     db.commit()
+
+
+@router.patch("/{loan_id}/security", response_model=LoanOut)
+def update_loan_security(
+    loan_id: uuid.UUID,
+    payload: LoanSecurityUpdate,
+    current_user: CurrentUser = Depends(require_permission("loans.create")),
+    db: Session = Depends(get_db),
+):
+    """Update collateral and guarantor information for a loan."""
+    loan = _get_loan_or_404(db, loan_id, current_user.tenant_id)
+    if payload.collateral_info is not None:
+        loan.collateral_info = payload.collateral_info
+    if payload.guarantor_info is not None:
+        loan.guarantor_info = payload.guarantor_info
+    db.commit()
+    db.refresh(loan)
+    return loan
+
+
+@router.get("/{loan_id}/receipt")
+def get_payment_receipt(
+    loan_id: uuid.UUID,
+    installment_number: int = Query(..., ge=1),
+    current_user: CurrentUser = Depends(require_permission("loans.view")),
+    db: Session = Depends(get_db),
+):
+    """Generate a structured payment receipt for a specific installment."""
+    loan = _get_loan_or_404(db, loan_id, current_user.tenant_id)
+    client = db.get(Client, loan.client_id)
+    inst = db.execute(
+        select(Installment).where(
+            Installment.loan_id == loan.id,
+            Installment.installment_number == installment_number,
+        )
+    ).scalar_one_or_none()
+    if not inst:
+        raise HTTPException(status_code=404, detail="Installment not found")
+
+    # Calculate remaining balance
+    total_paid = db.execute(
+        select(func.coalesce(func.sum(Installment.amount_paid), 0)).where(
+            Installment.loan_id == loan.id
+        )
+    ).scalar_one()
+
+    remaining = float(loan.principal_amount) - float(total_paid)
+    if remaining < 0:
+        remaining = 0
+
+    # Find next due installment
+    next_inst = db.execute(
+        select(Installment).where(
+            Installment.loan_id == loan.id,
+            Installment.status.in_(["pending", "overdue"]),
+        ).order_by(Installment.installment_number)
+    ).scalars().first()
+
+    return {
+        "receipt_id": f"RCP-{str(loan.id)[:8].upper()}-{installment_number:03d}",
+        "loan_id": str(loan.id),
+        "client_name": client.current_name if client else "Unknown",
+        "client_phone": client.phone if client else None,
+        "currency": loan.principal_currency,
+        "principal_amount": float(loan.principal_amount),
+        "installment_number": inst.installment_number,
+        "total_installments": loan.term_months,
+        "due_date": str(inst.due_date),
+        "amount_due": float(inst.amount_due),
+        "amount_paid": float(inst.amount_paid),
+        "late_fee_applied": float(inst.late_fee_applied),
+        "total_paid_this_installment": float(inst.amount_paid) + float(inst.late_fee_applied),
+        "status": inst.status,
+        "remaining_balance": round(remaining, 2),
+        "next_due_date": str(next_inst.due_date) if next_inst else None,
+        "next_amount_due": float(next_inst.amount_due) if next_inst else None,
+        "generated_at": datetime.utcnow().isoformat(),
+    }
+
