@@ -6,6 +6,11 @@ export async function listProducts(page = 1, search?: string): Promise<Paginated
   return data;
 }
 
+export async function getProduct(id: string): Promise<Product> {
+  const { data } = await apiClient.get(`/products/${id}`);
+  return data;
+}
+
 export async function createProduct(payload: {
   category: string;
   name: string;
@@ -13,6 +18,16 @@ export async function createProduct(payload: {
   price_currency: string;
 }): Promise<Product> {
   const { data } = await apiClient.post("/products", payload);
+  return data;
+}
+
+export async function updateProduct(id: string, payload: {
+  category?: string;
+  name?: string;
+  price_amount?: number;
+  price_currency?: string;
+}): Promise<Product> {
+  const { data } = await apiClient.patch(`/products/${id}`, payload);
   return data;
 }
 

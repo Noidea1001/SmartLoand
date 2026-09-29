@@ -1,5 +1,5 @@
 import { apiClient } from "./client";
-import type { Installment, Loan, Paginated } from "./types";
+import type { CollateralInfo, GuarantorInfo, Installment, Loan, Paginated } from "./types";
 
 export async function listLoans(page = 1, status?: string): Promise<Paginated<Loan>> {
   const { data } = await apiClient.get("/loans", { params: { page, status } });
@@ -35,6 +35,8 @@ export async function createLoan(payload: {
   interest_type: "flat" | "reducing";
   term_months: number;
   start_date: string;
+  collateral_info?: CollateralInfo;
+  guarantor_info?: GuarantorInfo;
 }): Promise<Loan> {
   const { data } = await apiClient.post("/loans", payload);
   return data;
@@ -64,6 +66,24 @@ export async function recordPayment(installment_id: string, amount: number, curr
   await apiClient.post("/payments", { installment_id, amount, currency });
 }
 
+export async function updateLoanSecurity(
+  loanId: string,
+  payload: { collateral_info?: CollateralInfo; guarantor_info?: GuarantorInfo },
+): Promise<Loan> {
+  const { data } = await apiClient.patch(`/loans/${loanId}/security`, payload);
+  return data;
+}
+
+export async function getLoanReceipt(
+  loanId: string,
+  installmentNumber: number,
+): Promise<Record<string, unknown>> {
+  const { data } = await apiClient.get(`/loans/${loanId}/receipt`, {
+    params: { installment_number: installmentNumber },
+  });
+  return data;
+}
+
 export async function downloadLoanStatement(loanId: string): Promise<void> {
   const response = await apiClient.get(`/reports/loans/${loanId}/statement`, { responseType: "blob" });
   const url = window.URL.createObjectURL(new Blob([response.data], { type: "application/pdf" }));
@@ -87,3 +107,4 @@ export async function downloadLoanAgreement(loanId: string): Promise<void> {
   link.remove();
   window.URL.revokeObjectURL(url);
 }
+

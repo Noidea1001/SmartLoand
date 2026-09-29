@@ -28,3 +28,12 @@ export async function createRole(name: string, permission_codes: string[]): Prom
   const { data } = await apiClient.post("/roles", { name, permission_codes });
   return data;
 }
+
+export async function updateRole(id: string, name: string, permission_codes: string[]): Promise<Role> {
+  const { data } = await apiClient.patch(`/roles/${id}`, { name, permission_codes });
+  return data;
+}
+
+export async function deleteRole(id: string): Promise<void> {
+  await apiClient.delete(`/roles/${id}`);
+}
