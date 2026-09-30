@@ -20,6 +20,12 @@ from app.services import loan_approval, loan_lifecycle
 router = APIRouter(prefix="/loans", tags=["loans"])
 
 
+def _enrich_loan_out(loan: Loan, client_name: str | None = None) -> LoanOut:
+    out = LoanOut.model_validate(loan)
+    out.client_name = client_name
+    return out
+
+
 @router.get("", response_model=PaginatedLoans)
 def list_loans(
     page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=100),
@@ -35,8 +41,20 @@ def list_loans(
         base = base.where(Loan.client_id == client_id)
 
     total = db.execute(select(func.count()).select_from(base.subquery())).scalar_one()
-    rows = db.execute(base.order_by(Loan.created_at.desc()).offset((page - 1) * page_size).limit(page_size)).scalars().all()
-    return PaginatedLoans(items=rows, total=total, page=page, page_size=page_size)
+
+    query = (
+        select(Loan, Client.current_name)
+        .outerjoin(Client, Loan.client_id == Client.id)
+        .where(Loan.tenant_id == current_user.tenant_id, Loan.deleted_at.is_(None))
+    )
+    if status_filter:
+        query = query.where(Loan.status == status_filter)
+    if client_id:
+        query = query.where(Loan.client_id == client_id)
+
+    rows = db.execute(query.order_by(Loan.created_at.desc()).offset((page - 1) * page_size).limit(page_size)).all()
+    items = [_enrich_loan_out(loan, client_name) for loan, client_name in rows]
+    return PaginatedLoans(items=items, total=total, page=page, page_size=page_size)
 
 
 @router.get("/pending-approval", response_model=PaginatedLoans)
@@ -49,8 +67,17 @@ def list_pending_approvals(
         Loan.tenant_id == current_user.tenant_id, Loan.status == "pending_approval", Loan.deleted_at.is_(None),
     )
     total = db.execute(select(func.count()).select_from(base.subquery())).scalar_one()
-    rows = db.execute(base.order_by(Loan.created_at.asc()).offset((page - 1) * page_size).limit(page_size)).scalars().all()
-    return PaginatedLoans(items=rows, total=total, page=page, page_size=page_size)
+
+    query = (
+        select(Loan, Client.current_name)
+        .outerjoin(Client, Loan.client_id == Client.id)
+        .where(
+            Loan.tenant_id == current_user.tenant_id, Loan.status == "pending_approval", Loan.deleted_at.is_(None),
+        )
+    )
+    rows = db.execute(query.order_by(Loan.created_at.asc()).offset((page - 1) * page_size).limit(page_size)).all()
+    items = [_enrich_loan_out(loan, client_name) for loan, client_name in rows]
+    return PaginatedLoans(items=items, total=total, page=page, page_size=page_size)
 
 
 @router.get("/my-requests", response_model=PaginatedLoans)
@@ -65,8 +92,19 @@ def list_my_requests(
         Loan.deleted_at.is_(None),
     )
     total = db.execute(select(func.count()).select_from(base.subquery())).scalar_one()
-    rows = db.execute(base.order_by(Loan.created_at.desc()).offset((page - 1) * page_size).limit(page_size)).scalars().all()
-    return PaginatedLoans(items=rows, total=total, page=page, page_size=page_size)
+
+    query = (
+        select(Loan, Client.current_name)
+        .outerjoin(Client, Loan.client_id == Client.id)
+        .where(
+            Loan.tenant_id == current_user.tenant_id,
+            Loan.requested_by_user_id == current_user.user.id,
+            Loan.deleted_at.is_(None),
+        )
+    )
+    rows = db.execute(query.order_by(Loan.created_at.desc()).offset((page - 1) * page_size).limit(page_size)).all()
+    items = [_enrich_loan_out(loan, client_name) for loan, client_name in rows]
+    return PaginatedLoans(items=items, total=total, page=page, page_size=page_size)
 
 
 def _get_loan_or_404(db: Session, loan_id: uuid.UUID, tenant_id: uuid.UUID) -> Loan:
@@ -99,7 +137,7 @@ def create_loan(
     loan_approval.submit_loan(db, loan, requester=current_user.user, can_auto_approve=can_auto_approve)
     db.commit()
     db.refresh(loan)
-    return loan
+    return _enrich_loan_out(loan, client.current_name)
 
 
 @router.get("/{loan_id}", response_model=LoanOut)
@@ -108,7 +146,9 @@ def get_loan(
     current_user: CurrentUser = Depends(require_permission("loans.view")),
     db: Session = Depends(get_db),
 ):
-    return _get_loan_or_404(db, loan_id, current_user.tenant_id)
+    loan = _get_loan_or_404(db, loan_id, current_user.tenant_id)
+    client = db.get(Client, loan.client_id)
+    return _enrich_loan_out(loan, client.current_name if client else None)
 
 
 @router.get("/{loan_id}/installments", response_model=list[InstallmentOut])
@@ -143,7 +183,8 @@ def decide_loan(
     loan_approval.decide_loan(db, loan, approval, approver=current_user.user, approve=payload.approve, comments=payload.comments)
     db.commit()
     db.refresh(loan)
-    return loan
+    client = db.get(Client, loan.client_id)
+    return _enrich_loan_out(loan, client.current_name if client else None)
 
 
 @router.post("/{loan_id}/prepay", response_model=LoanOut)
@@ -158,7 +199,8 @@ def prepay_loan(
     loan_lifecycle.record_prepayment(db, loan, payload.amount, current_user.user)
     db.commit()
     db.refresh(loan)
-    return loan
+    client = db.get(Client, loan.client_id)
+    return _enrich_loan_out(loan, client.current_name if client else None)
 
 
 @router.post("/{loan_id}/restructure", response_model=LoanOut)
@@ -173,7 +215,8 @@ def restructure_loan(
     loan_lifecycle.restructure_loan(db, loan, payload.new_term_months, payload.new_interest_rate_percent, current_user.user)
     db.commit()
     db.refresh(loan)
-    return loan
+    client = db.get(Client, loan.client_id)
+    return _enrich_loan_out(loan, client.current_name if client else None)
 
 
 @router.post("/{loan_id}/write-off", response_model=LoanOut)
@@ -186,7 +229,8 @@ def write_off_loan(
     loan_lifecycle.write_off_loan(db, loan, payload.reason, current_user.user)
     db.commit()
     db.refresh(loan)
-    return loan
+    client = db.get(Client, loan.client_id)
+    return _enrich_loan_out(loan, client.current_name if client else None)
 
 
 @router.delete("/{loan_id}", status_code=204)
@@ -215,7 +259,8 @@ def update_loan_security(
         loan.guarantor_info = payload.guarantor_info
     db.commit()
     db.refresh(loan)
-    return loan
+    client = db.get(Client, loan.client_id)
+    return _enrich_loan_out(loan, client.current_name if client else None)
 
 
 @router.get("/{loan_id}/receipt")
