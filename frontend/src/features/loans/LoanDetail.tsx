@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, Download, Printer, Shield, UserPlus, Award, FileText } from "lucide-react";
+import { ArrowLeft, Download, Printer, Shield, UserPlus, Award, FileText, Calculator } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import {
   downloadLoanAgreement, downloadLoanStatement, getLoan, getLoanInstallments,
@@ -19,6 +19,7 @@ import CreditScoreCard from "../../components/loans/CreditScoreCard";
 import CreditScorecardModal from "../../components/loans/CreditScorecardModal";
 import LoanClearanceModal from "../../components/loans/LoanClearanceModal";
 import LoanAgreementModal from "../../components/loans/LoanAgreementModal";
+import EarlyPayoffModal from "../../components/loans/EarlyPayoffModal";
 import type { PaymentItem } from "../../api/payments";
 
 function errorMessage(err: any, fallback: string): string {
@@ -44,6 +45,7 @@ export default function LoanDetail() {
   const [clearanceOpen, setClearanceOpen] = useState(false);
   const [agreementOpen, setAgreementOpen] = useState(false);
   const [scorecardOpen, setScorecardOpen] = useState(false);
+  const [payoffModalOpen, setPayoffModalOpen] = useState(false);
   const [payingId, setPayingId] = useState<string | null>(null);
   const [payAmount, setPayAmount] = useState("");
   const [prepayAmount, setPrepayAmount] = useState("");
@@ -228,7 +230,7 @@ export default function LoanDetail() {
         </div>
         {canViewReports && (
           <div className="page-actions no-print">
-            {loan.status === "closed" && (
+            {(loan.status === "closed" || loan.status === "paid") && (
               <button
                 type="button"
                 className="btn btn-sm btn-primary"
@@ -236,6 +238,22 @@ export default function LoanDetail() {
                 style={{ borderRadius: "8px", display: "inline-flex", alignItems: "center", gap: 6 }}
               >
                 <Award size={15} /> {isKm ? "លិខិតបញ្ជាក់រួចបំណុល" : "Clearance Certificate"}
+              </button>
+            )}
+            {(loan.status === "active" || loan.status === "overdue") && canLifecycle && (
+              <button
+                type="button"
+                className="btn btn-sm btn-primary"
+                onClick={() => setPayoffModalOpen(true)}
+                style={{
+                  borderRadius: "8px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  fontWeight: 600,
+                }}
+              >
+                <Calculator size={15} /> {isKm ? "ទូទាត់ផ្តាច់ / បង់មុនកាលកំណត់" : "Early Payoff / Prepay"}
               </button>
             )}
             <button
@@ -539,25 +557,35 @@ export default function LoanDetail() {
       {activeTab === "actions" && loan.status === "active" && canLifecycle && (
         <div className="card" style={{ padding: 24 }}>
           <div style={{ display: "grid", gap: 24 }}>
-            {/* Prepayment */}
-            <div>
-              <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
-                {isKm ? "កត់ត្រាការទូទាត់មុនកាលកំណត់" : t("loans.prepay")}
-              </h3>
-              <p style={{ fontSize: 13, color: "var(--color-text-muted)", marginBottom: 12 }}>
-                {isKm ? "ការបង់ប្រាក់ដុំដើម្បីកាត់បន្ថយសមតុល្យប្រាក់ដើមដែលនៅសល់។" : "Make a lump sum payment that reduces the outstanding balance."}
-              </p>
-              <div className="form-row">
-                <input
-                  type="number"
-                  step="0.01"
-                  value={prepayAmount}
-                  onChange={(e) => setPrepayAmount(e.target.value)}
-                  style={{ width: 180 }}
-                  placeholder={isKm ? "ចំនួនទឹកប្រាក់ទូទាត់មុន" : "Prepayment amount"}
-                />
-                <button className="btn btn-primary" onClick={handlePrepay} disabled={!prepayAmount || submitting}>
-                  {isKm ? "អនុវត្តការទូទាត់មុនកាលកំណត់" : "Apply Prepayment"}
+            {/* Flexible Early Payoff & Prepayment Settlement */}
+            <div
+              style={{
+                padding: "20px",
+                borderRadius: "12px",
+                background: "var(--color-surface-sunken, #f8fafc)",
+                border: "1px solid var(--color-border, #e2e8f0)",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
+                <div>
+                  <h3 style={{ fontSize: 15, fontWeight: 700, margin: "0 0 6px 0", display: "flex", alignItems: "center", gap: 8 }}>
+                    <Calculator size={18} color="var(--color-primary, #2563eb)" />
+                    {isKm ? "ទូទាត់ផ្តាច់កម្ចី ឬបង់ប្រាក់ដើមមុនកាលកំណត់" : "Early Payoff & Flexible Penalty Settlement"}
+                  </h3>
+                  <p style={{ fontSize: 13, color: "var(--color-text-muted)", margin: 0, maxWidth: 580 }}>
+                    {isKm
+                      ? "គណនាសមតុល្យសងផ្តាច់កម្ចីមុនកាលកំណត់ គិតការប្រាក់សន្សំបាន កំណត់អត្រាពិន័យ (ឬលើកលែងកម្រៃ) និងចេញវិញ្ញាបនបត្ររួចបំណុលដោយស្វ័យប្រវត្តិ។"
+                      : "Calculate early settlement quotes with future interest relief, configurable penalty rates (or fee waivers), and instant clearance certificate generation."}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => setPayoffModalOpen(true)}
+                  style={{ borderRadius: 8, display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 700 }}
+                >
+                  <Calculator size={16} />
+                  {isKm ? "បើកម៉ាស៊ីនគិតការទូទាត់ផ្តាច់" : "Launch Payoff Engine"}
                 </button>
               </div>
             </div>
@@ -660,6 +688,21 @@ export default function LoanDetail() {
           isOpen={Boolean(viewingReceipt)}
           onClose={() => setViewingReceipt(null)}
           payment={viewingReceipt}
+        />
+      )}
+
+      {/* Early Payoff & Flexible Prepayment Modal */}
+      {loan && (
+        <EarlyPayoffModal
+          isOpen={payoffModalOpen}
+          onClose={() => setPayoffModalOpen(false)}
+          loan={loan}
+          onSuccess={(isFullPayoff) => {
+            load();
+            if (isFullPayoff) {
+              setClearanceOpen(true);
+            }
+          }}
         />
       )}
 

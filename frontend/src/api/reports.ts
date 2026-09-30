@@ -873,5 +873,208 @@ export async function updateLeadStatus(
   return res.data;
 }
 
+// =========================================================================
+// 21. Bakong KHQR Real-Time Payment Webhook & Reconciliation
+// =========================================================================
 
+export interface BakongTransaction {
+  id: string;
+  hash: string;
+  md5: string;
+  payer_name: string;
+  payer_bank: string;
+  payer_account: string;
+  receiver_account: string;
+  amount: number;
+  currency: "USD" | "KHR";
+  bill_number: string;
+  status: "settled" | "pending_match" | "unmatched_float";
+  matched_loan_id: string | null;
+  reconciled_at: string | null;
+  created_at: string;
+}
 
+export interface BakongTransactionsResponse {
+  summary: {
+    total_transactions: number;
+    settled_count: number;
+    pending_count: number;
+    unmatched_count: number;
+    auto_match_rate_pct: number;
+    settled_usd: number;
+    settled_khr: number;
+  };
+  transactions: BakongTransaction[];
+}
+
+export async function getBakongTransactions(): Promise<BakongTransactionsResponse> {
+  const res = await apiClient.get<BakongTransactionsResponse>("/reports/bakong/transactions");
+  return res.data;
+}
+
+export async function simulateBakongWebhook(payload: {
+  payer_name: string;
+  payer_bank: string;
+  amount: number;
+  currency: string;
+  bill_number: string;
+}): Promise<any> {
+  const res = await apiClient.post("/reports/bakong/webhook", payload);
+  return res.data;
+}
+
+export async function manualReconcileBakong(payload: {
+  transaction_id: string;
+  target_loan_id: string;
+}): Promise<any> {
+  const res = await apiClient.post("/reports/bakong/reconcile-manual", payload);
+  return res.data;
+}
+
+// =========================================================================
+// 22. Automated Credit Underwriting & 5Cs Scoring Matrix
+// =========================================================================
+
+export interface CreditScoreEvaluation {
+  id: string;
+  borrower_name: string;
+  national_id: string;
+  phone: string;
+  requested_amount: number;
+  currency: "USD" | "KHR";
+  monthly_income: number;
+  monthly_expenses: number;
+  monthly_debt_repayment: number;
+  proposed_monthly_installment: number;
+  collateral_value: number;
+  collateral_type: string;
+  cbc_status: string;
+  scores: {
+    character: number;
+    capacity: number;
+    capital: number;
+    collateral: number;
+    conditions: number;
+    overall_score: number;
+  };
+  metrics: {
+    dscr: number;
+    dti_pct: number;
+    ltv_pct: number;
+  };
+  risk_tier: "A+" | "A" | "B" | "C" | "D";
+  recommendation: "AUTO_APPROVE" | "COMMITTEE_REVIEW" | "DECLINE";
+  max_approved_limit: number;
+  evaluated_by: string;
+  created_at: string;
+}
+
+export interface CreditScoringResponse {
+  summary: {
+    total_evaluations: number;
+    auto_approved_count: number;
+    committee_review_count: number;
+    declined_count: number;
+    average_score: number;
+  };
+  evaluations: CreditScoreEvaluation[];
+}
+
+export async function getCreditScoringEvaluations(): Promise<CreditScoringResponse> {
+  const res = await apiClient.get<CreditScoringResponse>("/reports/credit-scoring/evaluations");
+  return res.data;
+}
+
+export async function submitCreditUnderwritingEvaluation(payload: {
+  borrower_name: string;
+  national_id?: string;
+  phone?: string;
+  requested_amount: number;
+  currency: string;
+  monthly_income: number;
+  monthly_expenses: number;
+  monthly_debt_repayment: number;
+  proposed_monthly_installment: number;
+  collateral_value: number;
+  collateral_type: string;
+  cbc_status: string;
+}): Promise<{ ok: boolean; evaluation: CreditScoreEvaluation }> {
+  const res = await apiClient.post("/reports/credit-scoring/evaluate", payload);
+  return res.data;
+}
+
+// =========================================================================
+// 23. General Ledger (GL) & Double-Entry Accounting Module
+// =========================================================================
+
+export interface AccountItem {
+  code: string;
+  name_km: string;
+  name_en: string;
+  category: "asset" | "liability" | "equity" | "revenue" | "expense" | "contra_asset";
+  debit_usd: number;
+  credit_usd: number;
+  debit_khr: number;
+  credit_khr: number;
+}
+
+export interface JournalVoucherLine {
+  account_code: string;
+  account_name: string;
+  debit: number;
+  credit: number;
+}
+
+export interface JournalVoucher {
+  voucher_no: string;
+  date: string;
+  description_km: string;
+  description_en: string;
+  branch: string;
+  currency: "USD" | "KHR";
+  total_amount: number;
+  lines: JournalVoucherLine[];
+}
+
+export interface TrialBalanceResponse {
+  as_of_date: string;
+  usd: {
+    total_debit: number;
+    total_credit: number;
+    is_balanced: boolean;
+    variance: number;
+  };
+  khr: {
+    total_debit: number;
+    total_credit: number;
+    is_balanced: boolean;
+    variance: number;
+  };
+  accounts: AccountItem[];
+}
+
+export async function getChartOfAccounts(): Promise<{ chart_of_accounts: AccountItem[] }> {
+  const res = await apiClient.get("/reports/accounting/chart-of-accounts");
+  return res.data;
+}
+
+export async function getJournalEntries(): Promise<{ journal_entries: JournalVoucher[] }> {
+  const res = await apiClient.get("/reports/accounting/journal-entries");
+  return res.data;
+}
+
+export async function getTrialBalance(): Promise<TrialBalanceResponse> {
+  const res = await apiClient.get<TrialBalanceResponse>("/reports/accounting/trial-balance");
+  return res.data;
+}
+
+export async function postJournalEntry(payload: {
+  description_km: string;
+  description_en: string;
+  branch?: string;
+  currency: string;
+  lines: JournalVoucherLine[];
+}): Promise<any> {
+  const res = await apiClient.post("/reports/accounting/journal-entries", payload);
+  return res.data;
+}

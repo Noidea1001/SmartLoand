@@ -47,8 +47,43 @@ export async function decideLoan(id: string, approve: boolean, comments?: string
   return data;
 }
 
-export async function prepayLoan(id: string, amount: number): Promise<Loan> {
-  const { data } = await apiClient.post(`/loans/${id}/prepay`, { amount });
+export interface PrepaymentPayload {
+  amount: number;
+  penalty_amount?: number;
+  penalty_rate_percent?: number | null;
+  waived?: boolean;
+  waiver_reason?: string | null;
+  notes?: string | null;
+  is_full_payoff?: boolean;
+}
+
+export interface PayoffQuote {
+  loan_id: string;
+  client_name?: string | null;
+  currency: string;
+  original_principal: number;
+  total_installments: number;
+  paid_installments: number;
+  remaining_installments: number;
+  outstanding_balance: number;
+  remaining_principal: number;
+  accrued_interest: number;
+  unearned_future_interest: number;
+  default_penalty_rate_percent: number;
+  suggested_penalty_amount: number;
+  is_penalty_applicable: boolean;
+  total_payoff_amount: number;
+  total_savings_amount: number;
+}
+
+export async function prepayLoan(id: string, payload: number | PrepaymentPayload): Promise<Loan> {
+  const body = typeof payload === "number" ? { amount: payload } : payload;
+  const { data } = await apiClient.post(`/loans/${id}/prepay`, body);
+  return data;
+}
+
+export async function getLoanPayoffQuote(id: string): Promise<PayoffQuote> {
+  const { data } = await apiClient.get(`/loans/${id}/payoff-quote`);
   return data;
 }
 

@@ -20,9 +20,9 @@ const STORAGE_KEY_MODE = "smartloan.theme.mode";
 const STORAGE_KEY_COLORS = "smartloan.theme.colors";
 
 const DEFAULT_COLORS: ThemeColors = {
-  navColor: "#1a1d23",
-  sidebarColor: "#111318",
-  buttonColor: "#6366f1",
+  navColor: "#0f172a",
+  sidebarColor: "#090d16",
+  buttonColor: "#2563eb",
 };
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
@@ -78,10 +78,11 @@ function hexToHSL(hex: string): { h: number; s: number; l: number } {
 }
 
 function generateColorVariants(hex: string) {
-  const { h, s } = hexToHSL(hex);
+  const { h, s, l } = hexToHSL(hex);
+  const hoverL = Math.max(18, Math.min(82, l > 45 ? l - 8 : l + 8));
   return {
     base: hex,
-    hover: `hsl(${h}, ${s}%, 38%)`,
+    hover: `hsl(${h}, ${s}%, ${hoverL}%)`,
     soft: `hsl(${h}, ${Math.min(s, 40)}%, 94%)`,
     softDark: `hsl(${h}, ${Math.min(s, 30)}%, 18%)`,
     text: `hsl(${h}, ${s}%, 62%)`,

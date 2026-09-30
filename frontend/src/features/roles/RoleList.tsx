@@ -34,6 +34,9 @@ const MODULE_NAMES: Record<string, { km: string; en: string }> = {
   fx_exchange: { km: "ការប្តូរប្រាក់ទ្វេរបិយប័ណ្ណ & បេឡារង", en: "Dual FX & Petty Cash" },
   telegram_bot: { km: "ប្រព័ន្ធ Telegram Bot ស្វ័យប្រវត្តិ", en: "Telegram Bot Dispatcher" },
   leads: { km: "ប្រព័ន្ធទទួលពាក្យកម្ចីអនឡាញ & QR", en: "Online Loan Intake & Leads" },
+  bakong: { km: "ការទូទាត់បាគង KHQR & ផ្ទៀងផ្ទាត់", en: "Bakong KHQR Hub" },
+  scoring: { km: "ការវាយតម្លៃពិន្ទុឥណទាន 5Cs", en: "5Cs Credit Scoring" },
+  accounting: { km: "ប្រព័ន្ធគណនេយ្យទូទៅ (GL)", en: "General Ledger & Accounting" },
 };
 
 const PERM_DESCRIPTIONS_KM: Record<string, string> = {
@@ -89,6 +92,12 @@ const PERM_DESCRIPTIONS_KM: Record<string, string> = {
   "telegram_bot.manage": "កំណត់ Token បូត Telegram និងចុចបញ្ជូនសារស្វ័យប្រវត្តិ",
   "leads.view": "មើលបញ្ជីពាក្យស្នើសុំកម្ចីអនឡាញ និងការវាយតម្លៃបឋម",
   "leads.manage": "ដំណើរការ ចាត់ចែង និងបំប្លែងពាក្យស្នើសុំទៅជាកម្ចីសកម្ម",
+  "bakong.view": "មើលបញ្ជីប្រតិបត្តិការបាគង KHQR និងស្ថានភាពផ្ទៀងផ្ទាត់",
+  "bakong.manage": "ផ្គូផ្គងប្រតិបត្តិការបាគងដែលមិនទាន់ស្គាល់ម្ចាស់ (Float)",
+  "scoring.view": "មើលតារាងវាយតម្លៃពិន្ទុឥណទាន និងកម្រិតហានិភ័យ",
+  "scoring.manage": "អនុវត្តការវាយតម្លៃពិន្ទុឥណទាន និងគណនាអនុសាសន៍អនុម័ត",
+  "accounting.view": "មើលតារាងគណនី (COA) ប័ណ្ណទូទាត់ និងតារាងតុល្យការសាកល្បង",
+  "accounting.manage": "បង្កើត និងចុះបញ្ជីប័ណ្ណទូទាត់ទ្វេភាគ (Journal Voucher)",
 };
 
 export default function RoleList() {

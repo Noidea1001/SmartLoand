@@ -36,6 +36,7 @@ export type LoanStatus =
   | "pending_approval"
   | "active"
   | "closed"
+  | "paid"
   | "rejected"
   | "overdue"
   | "defaulted"

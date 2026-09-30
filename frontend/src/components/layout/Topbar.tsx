@@ -8,9 +8,13 @@ import {
   Sun,
   Volume2,
   VolumeX,
-  Globe,
   Compass,
   Calculator,
+  Check,
+  RotateCcw,
+  Sparkles,
+  X,
+  Layers,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -26,17 +30,202 @@ import LoanCalculatorModal from "../calculator/LoanCalculatorModal";
 
 const POLL_INTERVAL_MS = 30000;
 
-const PRESET_THEMES = [
-  { label: "Indigo", nav: "#1a1d23", sidebar: "#111318", button: "#6366f1" },
-  { label: "Emerald", nav: "#0f1a14", sidebar: "#0a1410", button: "#10b981" },
-  { label: "Rose", nav: "#1c1117", sidebar: "#150d12", button: "#f43f5e" },
-  { label: "Amber", nav: "#1a1710", sidebar: "#14120b", button: "#f59e0b" },
-  { label: "Cyan", nav: "#0e1a1e", sidebar: "#091418", button: "#06b6d4" },
-  { label: "Violet", nav: "#1a1525", sidebar: "#13101c", button: "#8b5cf6" },
-  { label: "Sky", nav: "#0e1620", sidebar: "#0a1118", button: "#0ea5e9" },
-  { label: "Slate", nav: "#1e2028", sidebar: "#151720", button: "#64748b" },
-  { label: "Teal", nav: "#0f1918", sidebar: "#0a1312", button: "#14b8a6" },
-  { label: "Fuchsia", nav: "#1c1220", sidebar: "#150d18", button: "#d946ef" },
+export interface ThemePreset {
+  id: string;
+  nameKm: string;
+  nameEn: string;
+  category: "banking" | "wealth" | "ergonomic" | "modern";
+  descKm: string;
+  descEn: string;
+  nav: string;
+  sidebar: string;
+  button: string;
+}
+
+const PRESET_THEMES: ThemePreset[] = [
+  // 1. Banking & Trust
+  {
+    id: "royal-sapphire",
+    nameKm: "ខៀវរាជវង្ស ស្ដង់ដារ",
+    nameEn: "Royal Sapphire",
+    category: "banking",
+    descKm: "ស្ដង់ដារគ្រឹះស្ថានធនាគារ អានស្រួល ភាពជឿជាក់ខ្ពស់",
+    descEn: "Tier-1 enterprise banking standard, high trust",
+    nav: "#0f172a",
+    sidebar: "#090d16",
+    button: "#2563eb",
+  },
+  {
+    id: "nordic-glacier",
+    nameKm: "ផ្ទៃមេឃ ទឹកកក",
+    nameEn: "Nordic Glacier",
+    category: "banking",
+    descKm: "បច្ចេកវិទ្យាហិរញ្ញវត្ថុទំនើប ស្រាលភ្នែក គ្មានចំណាំងផ្លាត",
+    descEn: "Crisp modern fintech cyan, glare-free readability",
+    nav: "#0c1926",
+    sidebar: "#07111b",
+    button: "#0284c7",
+  },
+  {
+    id: "cobalt-precision",
+    nameKm: "កូបាល់ ច្បាស់លាស់",
+    nameEn: "Cobalt Precision",
+    category: "banking",
+    descKm: "កម្រិតខ្ពស់សម្រាប់ទិន្នន័យហិរញ្ញវត្ថុ និងរបាយការណ៍",
+    descEn: "Engineered for financial metrics & data clarity",
+    nav: "#0d1b2a",
+    sidebar: "#08111c",
+    button: "#3b82f6",
+  },
+  {
+    id: "swiss-navy",
+    nameKm: "ស្វីស ដែនសមុទ្រ",
+    nameEn: "Swiss Navy",
+    category: "banking",
+    descKm: "ស្តង់ដារអន្តរជាតិ សុវត្ថិភាពខ្ពស់ ងាយស្រួលផ្ទៀងផ្ទាត់",
+    descEn: "International vault standard, high security tone",
+    nav: "#111827",
+    sidebar: "#0b0f17",
+    button: "#4f46e5",
+  },
+
+  // 2. Wealth & Gold
+  {
+    id: "emerald-wealth",
+    nameKm: "ត្បូងមរកត ទ្រព្យសម្បត្តិ",
+    nameEn: "Emerald Wealth",
+    category: "wealth",
+    descKm: "ទ្រព្យសម្បត្តិ ស្ថិរភាពហិរញ្ញវត្ថុ ពណ៌បៃតងស្ងប់ចិត្ត",
+    descEn: "Prosperity & financial stability, soothing green",
+    nav: "#091a13",
+    sidebar: "#05110c",
+    button: "#059669",
+  },
+  {
+    id: "angkor-gold",
+    nameKm: "មាសអង្គរ សំរឹទ្ធ",
+    nameEn: "Angkor Gold Reserve",
+    category: "wealth",
+    descKm: "មាសបម្រុង សិរីសួស្តី ប្រណីតភាពនៃវប្បធម៌ខ្មែរ",
+    descEn: "Cambodian silk & gold reserve, prestigious luxury",
+    nav: "#18140f",
+    sidebar: "#100d0a",
+    button: "#d97706",
+  },
+  {
+    id: "imperial-violet",
+    nameKm: "ស្វាយអធិរាជ ឯកជន",
+    nameEn: "Imperial Private",
+    category: "wealth",
+    descKm: "សេវាធនាគារកម្រិត VIP និងគ្រប់គ្រងទ្រព្យធំៗ",
+    descEn: "VIP wealth management & private banking tier",
+    nav: "#150f24",
+    sidebar: "#0e0919",
+    button: "#7c3aed",
+  },
+  {
+    id: "botanical-spruce",
+    nameKm: "ព្រៃស្រស់ ធម្មជាតិ",
+    nameEn: "Botanical Spruce",
+    category: "wealth",
+    descKm: "ហិរញ្ញវត្ថុបៃតង និរន្តរភាព និងកសិកម្ម",
+    descEn: "Sustainable green finance & agri-microfinance",
+    nav: "#0d1a16",
+    sidebar: "#07120e",
+    button: "#10b981",
+  },
+
+  // 3. Ergonomic / Eye-Care
+  {
+    id: "platinum-slate",
+    nameKm: "ផ្លាកទីន ស្ងប់ស្ងាត់",
+    nameEn: "Platinum Slate",
+    category: "ergonomic",
+    descKm: "សម្រួលភ្នែក គ្មានចំណាំងផ្លាត សម្រាប់វេនការងារ ៨ម៉ោង",
+    descEn: "Zero-glare neutral slate for 8-hour cashier shifts",
+    nav: "#16181f",
+    sidebar: "#0f1015",
+    button: "#64748b",
+  },
+  {
+    id: "pacific-teal",
+    nameKm: "សមុទ្រប៉ាស៊ីហ្វិក ត្រជាក់",
+    nameEn: "Pacific Deep Teal",
+    category: "ergonomic",
+    descKm: "តុល្យភាពពណ៌ល្អបំផុត កាត់បន្ថយការហត់នឿយភ្នែក",
+    descEn: "Optimal color balance, reduces optic fatigue",
+    nav: "#0a1919",
+    sidebar: "#051111",
+    button: "#0d9488",
+  },
+  {
+    id: "warm-mocha",
+    nameKm: "កាហ្វេម៉ូកា កក់ក្តៅ",
+    nameEn: "Warm Mocha",
+    category: "ergonomic",
+    descKm: "សម្លេងពណ៌កក់ក្តៅ មិនចាំង ផ្តល់អារម្មណ៍ស្ងប់ចិត្ត",
+    descEn: "Warm low-contrast earth tone, ultra soft on eyes",
+    nav: "#181412",
+    sidebar: "#100d0b",
+    button: "#c2410c",
+  },
+  {
+    id: "obsidian-basalt",
+    nameKm: "ថ្មបាសាល់ កម្រិតខ្ពស់",
+    nameEn: "Obsidian Basalt",
+    category: "ergonomic",
+    descKm: "ងងឹតសុទ្ធ កម្រិតច្បាស់ខ្ពស់ សន្សំសំចៃថាមពលអេក្រង់",
+    descEn: "Ultra-deep OLED contrast, high clarity & low power",
+    nav: "#111215",
+    sidebar: "#090a0c",
+    button: "#475569",
+  },
+
+  // 4. Modern & Vivid
+  {
+    id: "swiss-crimson",
+    nameKm: "ស្វីស ក្រហមវីសា",
+    nameEn: "Swiss Crimson",
+    category: "modern",
+    descKm: "ម៉ឺងម៉ាត់ ច្បាស់លាស់ ពិសេសសម្រាប់អធិការកិច្ច និងហានិភ័យ",
+    descEn: "Authoritative & clear, ideal for audit & risk units",
+    nav: "#1c1013",
+    sidebar: "#12080a",
+    button: "#e11d48",
+  },
+  {
+    id: "sunset-copper",
+    nameKm: "រស្មីព្រលប់ ស្ពាន់",
+    nameEn: "Sunset Copper",
+    category: "modern",
+    descKm: "ថាមពលរស់រវើក មើលឃើញច្បាស់ ពណ៌ខ្មែរបុរាណ",
+    descEn: "Vibrant energy, strong button contrast & warmth",
+    nav: "#1a130f",
+    sidebar: "#110b08",
+    button: "#ea580c",
+  },
+  {
+    id: "khmer-lotus",
+    nameKm: "ផ្កាឈូកខ្មែរ រលោង",
+    nameEn: "Khmer Lotus Blossom",
+    category: "modern",
+    descKm: "ទន់ភ្លន់ ថ្លៃថ្នូរ រំលេចភាពស្រស់ស្អាតនៃចំណុចប្រទាក់",
+    descEn: "Gentle elegance, smooth microfinance aesthetic",
+    nav: "#1b1018",
+    sidebar: "#120910",
+    button: "#f43f5e",
+  },
+  {
+    id: "oasis-mint",
+    nameKm: "អូអាស៊ីស ស្រស់ស្រាយ",
+    nameEn: "Oasis Mint",
+    category: "modern",
+    descKm: "ស្រស់ស្រាយ ទំនើប ផ្តល់ភាពងាយស្រួលក្នុងការស្វែងរក",
+    descEn: "Crisp mint & teal balance, modern digital branch",
+    nav: "#0a1917",
+    sidebar: "#05110f",
+    button: "#14b8a6",
+  },
 ];
 
 export default function Topbar() {
@@ -53,6 +242,7 @@ export default function Topbar() {
   const [notifOpen, setNotifOpen] = useState(false);
   const [themeOpen, setThemeOpen] = useState(false);
   const [calcOpen, setCalcOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<"all" | "banking" | "wealth" | "ergonomic" | "modern">("all");
   const notifRef = useRef<HTMLDivElement>(null);
   const themeRef = useRef<HTMLDivElement>(null);
 
@@ -247,61 +437,209 @@ export default function Topbar() {
           </button>
 
           {themeOpen && (
-            <div className="theme-panel card">
-              <div className="theme-panel-title">{t("topbar.themeCustomizer")}</div>
-
-              <div className="theme-color-row">
-                <span className="theme-color-label">{t("topbar.navbar")}</span>
-                <input
-                  type="color"
-                  className="theme-color-input"
-                  value={colors.navColor}
-                  onChange={(e) => setColors({ navColor: e.target.value })}
-                />
+            <div className="theme-panel">
+              {/* Header */}
+              <div className="theme-panel-header">
+                <div>
+                  <div className="theme-panel-header-title">
+                    <Sparkles size={16} style={{ color: "var(--color-accent)" }} />
+                    <span>{t("topbar.themeStudio")}</span>
+                  </div>
+                  <div className="theme-panel-header-sub">
+                    {t("topbar.themeSubtitle")}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setThemeOpen(false)}
+                  className="theme-panel-close-btn"
+                  aria-label={isKm ? "បិទ" : "Close"}
+                >
+                  <X size={16} />
+                </button>
               </div>
 
-              <div className="theme-color-row">
-                <span className="theme-color-label">{t("topbar.sidebar")}</span>
-                <input
-                  type="color"
-                  className="theme-color-input"
-                  value={colors.sidebarColor}
-                  onChange={(e) => setColors({ sidebarColor: e.target.value })}
-                />
+              {/* Body */}
+              <div className="theme-panel-body">
+                {/* Category Filter Tabs */}
+                <div className="theme-category-tabs">
+                  {[
+                    { key: "all", label: t("topbar.categoryAll"), count: PRESET_THEMES.length },
+                    { key: "banking", label: t("topbar.categoryBanking"), count: PRESET_THEMES.filter(p => p.category === "banking").length },
+                    { key: "wealth", label: t("topbar.categoryWealth"), count: PRESET_THEMES.filter(p => p.category === "wealth").length },
+                    { key: "ergonomic", label: t("topbar.categoryErgonomic"), count: PRESET_THEMES.filter(p => p.category === "ergonomic").length },
+                    { key: "modern", label: t("topbar.categoryModern"), count: PRESET_THEMES.filter(p => p.category === "modern").length },
+                  ].map((tab) => (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      className={`theme-category-btn${selectedCategory === tab.key ? " active" : ""}`}
+                      onClick={() => setSelectedCategory(tab.key as any)}
+                    >
+                      <span>{tab.label}</span>
+                      <span className="theme-category-count">{tab.count}</span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Preset Cards Grid */}
+                <div className="theme-card-grid">
+                  {(selectedCategory === "all"
+                    ? PRESET_THEMES
+                    : PRESET_THEMES.filter((p) => p.category === selectedCategory)
+                  ).map((preset) => {
+                    const isActive =
+                      colors.buttonColor.toLowerCase() === preset.button.toLowerCase() &&
+                      colors.navColor.toLowerCase() === preset.nav.toLowerCase();
+                    return (
+                      <div
+                        key={preset.id}
+                        role="button"
+                        tabIndex={0}
+                        className={`theme-card${isActive ? " active" : ""}`}
+                        onClick={() =>
+                          setColors({
+                            navColor: preset.nav,
+                            sidebarColor: preset.sidebar,
+                            buttonColor: preset.button,
+                          })
+                        }
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            setColors({
+                              navColor: preset.nav,
+                              sidebarColor: preset.sidebar,
+                              buttonColor: preset.button,
+                            });
+                          }
+                        }}
+                      >
+                        {/* 3-stripe visual color preview */}
+                        <div className="theme-card-preview-bar">
+                          <div
+                            className="theme-card-preview-nav"
+                            style={{ backgroundColor: preset.nav }}
+                            title={`${isKm ? "របារខាងលើ" : "Navbar"}: ${preset.nav}`}
+                          />
+                          <div
+                            className="theme-card-preview-side"
+                            style={{ backgroundColor: preset.sidebar }}
+                            title={`${isKm ? "របារចំហៀង" : "Sidebar"}: ${preset.sidebar}`}
+                          />
+                          <div
+                            className="theme-card-preview-accent"
+                            style={{ backgroundColor: preset.button }}
+                            title={`${isKm ? "ពណ៌ចម្បង" : "Accent"}: ${preset.button}`}
+                          />
+                        </div>
+
+                        {/* Card Title & Active Pill */}
+                        <div className="theme-card-header">
+                          <span className="theme-card-title">
+                            {isKm ? preset.nameKm : preset.nameEn}
+                          </span>
+                          {isActive && (
+                            <span className="theme-card-active-pill" title={t("topbar.activeTheme")}>
+                              <Check size={12} strokeWidth={3} />
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Short Description */}
+                        <p className="theme-card-desc">
+                          {isKm ? preset.descKm : preset.descEn}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Custom Fine-Tuning Drawer */}
+                <div className="theme-custom-section">
+                  <div className="theme-custom-header">
+                    <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <Layers size={14} style={{ color: "var(--color-accent)" }} />
+                      <span>{t("topbar.customTuning")}</span>
+                    </span>
+                  </div>
+
+                  <div className="theme-custom-grid">
+                    <div className="theme-custom-item">
+                      <span className="theme-custom-label">{t("topbar.navbar")}</span>
+                      <div className="theme-custom-control">
+                        <input
+                          type="color"
+                          className="theme-color-input-round"
+                          value={colors.navColor}
+                          onChange={(e) => setColors({ navColor: e.target.value })}
+                        />
+                        <span className="theme-custom-hex">{colors.navColor}</span>
+                      </div>
+                    </div>
+
+                    <div className="theme-custom-item">
+                      <span className="theme-custom-label">{t("topbar.sidebar")}</span>
+                      <div className="theme-custom-control">
+                        <input
+                          type="color"
+                          className="theme-color-input-round"
+                          value={colors.sidebarColor}
+                          onChange={(e) => setColors({ sidebarColor: e.target.value })}
+                        />
+                        <span className="theme-custom-hex">{colors.sidebarColor}</span>
+                      </div>
+                    </div>
+
+                    <div className="theme-custom-item">
+                      <span className="theme-custom-label">{t("topbar.primaryAccent")}</span>
+                      <div className="theme-custom-control">
+                        <input
+                          type="color"
+                          className="theme-color-input-round"
+                          value={colors.buttonColor}
+                          onChange={(e) => setColors({ buttonColor: e.target.value })}
+                        />
+                        <span className="theme-custom-hex">{colors.buttonColor}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <div className="theme-color-row">
-                <span className="theme-color-label">{t("topbar.primaryAccent")}</span>
-                <input
-                  type="color"
-                  className="theme-color-input"
-                  value={colors.buttonColor}
-                  onChange={(e) => setColors({ buttonColor: e.target.value })}
-                />
-              </div>
+              {/* Footer */}
+              <div className="theme-panel-footer">
+                <button
+                  type="button"
+                  className="btn"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    fontSize: 12,
+                    padding: "6px 12px",
+                  }}
+                  onClick={resetColors}
+                >
+                  <RotateCcw size={14} />
+                  <span>{t("topbar.resetDefault")}</span>
+                </button>
 
-              <div className="theme-panel-title" style={{ marginTop: 6 }}>{t("topbar.colorPresets")}</div>
-              <div className="theme-presets">
-                {PRESET_THEMES.map((preset) => (
-                  <button
-                    key={preset.label}
-                    className={`theme-preset-btn${
-                      colors.buttonColor === preset.button ? " active" : ""
-                    }`}
-                    style={{ background: preset.button }}
-                    onClick={() => setColors({ navColor: preset.nav, sidebarColor: preset.sidebar, buttonColor: preset.button })}
-                    title={preset.label}
-                  />
-                ))}
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    fontSize: 12,
+                    padding: "6px 16px",
+                  }}
+                  onClick={() => setThemeOpen(false)}
+                >
+                  <Check size={14} />
+                  <span>{isKm ? "រួចរាល់" : "Done"}</span>
+                </button>
               </div>
-
-              <button
-                className="btn"
-                style={{ width: "100%", marginTop: 12, fontSize: 13 }}
-                onClick={resetColors}
-              >
-                {t("topbar.resetDefault")}
-              </button>
             </div>
           )}
         </div>

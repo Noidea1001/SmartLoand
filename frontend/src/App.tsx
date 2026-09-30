@@ -38,6 +38,9 @@ import FxExchangeDrawer from "./features/fx/FxExchangeDrawer";
 import TelegramBotDispatcher from "./features/telegram/TelegramBotDispatcher";
 import LoanIntakeLeads from "./features/leads/LoanIntakeLeads";
 import PublicLoanApply from "./features/leads/PublicLoanApply";
+import BakongKhqrHub from "./features/bakong/BakongKhqrHub";
+import CreditScoringMatrix from "./features/scoring/CreditScoringMatrix";
+import GeneralLedger from "./features/accounting/GeneralLedger";
 
 export default function App() {
   return (
@@ -69,6 +72,9 @@ export default function App() {
                 <Route path="write-offs" element={<WriteOffTracker />} />
                 <Route path="fx-exchange" element={<FxExchangeDrawer />} />
                 <Route path="telegram-bot" element={<TelegramBotDispatcher />} />
+                <Route path="bakong-khqr" element={<BakongKhqrHub />} />
+                <Route path="credit-scoring" element={<CreditScoringMatrix />} />
+                <Route path="general-ledger" element={<GeneralLedger />} />
                 <Route path="loan-intake" element={<LoanIntakeLeads />} />
                 <Route path="collaterals" element={<CollateralVault />} />
                 <Route path="reminders" element={<ReminderCenter />} />
