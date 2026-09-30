@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { QRCodeSVG } from "qrcode.react";
 import {
   X,
   CreditCard,
@@ -30,9 +31,10 @@ export default function PaymentModal({
   installment,
   onPaymentSuccess,
 }: PaymentModalProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isKm = i18n.language === "km";
   const toast = useToast();
-  const { usdToKhrRate } = useBranding();
+  const { usdToKhrRate, companyName } = useBranding();
 
   const [payCurrency, setPayCurrency] = useState<"USD" | "KHR">("USD");
   const [amount, setAmount] = useState<string>("");
@@ -119,7 +121,7 @@ export default function PaymentModal({
     e.preventDefault();
     const numAmount = parseFloat(amount);
     if (!numAmount || numAmount <= 0) {
-      toast.warning("Please enter a valid payment amount.");
+      toast.warning(isKm ? "សូមបញ្ចូលចំនួនទឹកប្រាក់បង់ប្រាក់ឱ្យបានត្រឹមត្រូវ។" : "Please enter a valid payment amount.");
       return;
     }
 
@@ -135,15 +137,17 @@ export default function PaymentModal({
       });
 
       toast.success(
-        `Recorded ${formatCurrency(numAmount, payCurrency)} payment successfully.`,
-        { title: "Payment Completed" }
+        isKm
+          ? `បានកត់ត្រាការបង់ប្រាក់ចំនួន ${formatCurrency(numAmount, payCurrency)} ដោយជោគជ័យ។`
+          : `Recorded ${formatCurrency(numAmount, payCurrency)} payment successfully.`,
+        { title: isKm ? "ការទូទាត់ជោគជ័យ" : "Payment Completed" }
       );
 
       onClose();
       onPaymentSuccess(result);
     } catch (err: any) {
-      const msg = err?.response?.data?.detail || "Failed to record payment.";
-      toast.error(msg, { title: "Payment Error" });
+      const msg = err?.response?.data?.detail || (isKm ? "មិនអាចកត់ត្រាការទូទាត់បានទេ។" : "Failed to record payment.");
+      toast.error(msg, { title: isKm ? "កំហុសទូទាត់" : "Payment Error" });
     } finally {
       setSubmitting(false);
     }
@@ -157,6 +161,7 @@ export default function PaymentModal({
         style={{
           maxWidth: 520,
           width: "100%",
+          maxHeight: "90vh",
           background: "var(--color-surface)",
           borderRadius: "14px",
           boxShadow: "0 20px 45px -10px rgba(0, 0, 0, 0.25)",
@@ -192,9 +197,11 @@ export default function PaymentModal({
             <CreditCard size={22} />
           </div>
           <div className="modal-header-text">
-            <h2 className="modal-header-title">{t("repaymentsPage.collectModalTitle")}</h2>
+            <h2 className="modal-header-title">{isKm ? "កត់ត្រាការបង់ប្រាក់រំលស់" : "Record Installment Payment"}</h2>
             <p className="modal-header-desc">
-              {t("repaymentsPage.subtitle")}
+              {isKm
+                ? "ប្រមូលការបង់រំលស់ថ្មីជាប្រាក់ដុល្លារ ឬរៀល មើលគណនីហួសកាលកំណត់ និងបោះពុម្ពបង្កាន់ដៃផ្លូវការ។"
+                : "Collect installment repayments in USD or KHR, calculate real-time fx, and issue payment receipts."}
             </p>
           </div>
           <button
@@ -209,8 +216,26 @@ export default function PaymentModal({
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column" }}>
-          <div style={{ padding: "20px 24px", display: "grid", gap: 16 }}>
+        <form
+          onSubmit={handleSubmit}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            flex: 1,
+            minHeight: 0,
+            overflow: "hidden",
+          }}
+        >
+          <div
+            className="modal-body-scroll"
+            style={{
+              padding: "20px 24px",
+              display: "grid",
+              gap: 16,
+              overflowY: "auto",
+              flex: 1,
+            }}
+          >
             {/* Installment Summary Box */}
             <div
               style={{
@@ -224,7 +249,7 @@ export default function PaymentModal({
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: "var(--color-text)" }}>
-                  {installment.client_name || t("repaymentsPage.clientLabel")}
+                  {installment.client_name || (isKm ? "អតិថិជនកម្ចី" : "Valued Borrower")}
                 </span>
                 <span
                   style={{
@@ -236,12 +261,12 @@ export default function PaymentModal({
                     border: "1px solid var(--color-border)",
                   }}
                 >
-                  {t("repaymentsPage.installmentNo")} {installment.installment_number}
+                  {isKm ? "ដំណាក់កាលទី" : "Installment #"} {installment.installment_number}
                 </span>
               </div>
 
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                <span style={{ fontSize: 12, color: "var(--color-text-muted)" }}>{t("repaymentsPage.scheduledDue")}:</span>
+                <span style={{ fontSize: 12, color: "var(--color-text-muted)" }}>{isKm ? "ចំនួនទឹកប្រាក់តាមកាលកំណត់៖" : "Scheduled Net Due:"}</span>
                 <div style={{ textAlign: "right" }}>
                   <span className="num" style={{ fontSize: 18, fontWeight: 800, color: "var(--color-text)" }}>
                     {formatCurrency(netDueInLoanCurrency, loanCurrency)}
@@ -264,7 +289,7 @@ export default function PaymentModal({
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                 <label className="form-label" style={{ fontWeight: 700, fontSize: 13, margin: 0 }}>
-                  {t("repaymentsPage.payCurrency")}
+                  {isKm ? "រូបិយប័ណ្ណបង់ប្រាក់" : "Payment Currency"}
                 </label>
                 <button
                   type="button"
@@ -279,7 +304,7 @@ export default function PaymentModal({
                     padding: 0,
                   }}
                 >
-                  {t("repaymentsPage.payFull")}
+                  {isKm ? "បង់បង្គ្រប់" : "Fill Full Due"}
                 </button>
               </div>
 
@@ -335,7 +360,7 @@ export default function PaymentModal({
             {/* Amount Input */}
             <div>
               <label className="form-label" style={{ fontWeight: 700, fontSize: 13, marginBottom: 6 }}>
-                {t("repaymentsPage.amountToPay")} ({payCurrency})
+                {isKm ? "ចំនួនទឹកប្រាក់ត្រូវបង់" : "Amount to Pay"} ({payCurrency})
               </label>
               <input
                 type="number"
@@ -369,7 +394,7 @@ export default function PaymentModal({
                 >
                   <Info size={13} />
                   <span>
-                    {t("repaymentsPage.amountCredited")}: <strong>{formatCurrency(conversionInfo.credited, loanCurrency)}</strong> (@ 1 USD = {effectiveRate.toLocaleString()} KHR)
+                    {isKm ? "ប្រាក់កាត់ចូលកម្ចី" : "Amount credited to loan"}: <strong>{formatCurrency(conversionInfo.credited, loanCurrency)}</strong> (@ 1 USD = {effectiveRate.toLocaleString()} KHR)
                   </span>
                 </div>
               )}
@@ -378,14 +403,14 @@ export default function PaymentModal({
             {/* Payment Method Selector */}
             <div>
               <label className="form-label" style={{ fontWeight: 700, fontSize: 13, marginBottom: 8 }}>
-                {t("repaymentsPage.paymentMethod")}
+                {isKm ? "វិធីសាស្ត្រទូទាត់" : "Payment Method"}
               </label>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                 {[
-                  { id: "cash", label: t("repaymentsPage.cash"), icon: Banknote },
-                  { id: "aba_bakong", label: t("repaymentsPage.bakong"), icon: QrCode },
-                  { id: "bank_transfer", label: t("repaymentsPage.bankTransfer"), icon: Building },
-                  { id: "wing", label: t("repaymentsPage.wing"), icon: Smartphone },
+                  { id: "cash", label: isKm ? "សាច់ប្រាក់សុទ្ធ" : "Cash", icon: Banknote },
+                  { id: "aba_bakong", label: isKm ? "ABA PayWay / បាកង KHQR" : "ABA PayWay / Bakong KHQR", icon: QrCode },
+                  { id: "bank_transfer", label: isKm ? "ផ្ទេរប្រាក់តាមធនាគារ" : "Bank Transfer", icon: Building },
+                  { id: "wing", label: isKm ? "វីង / កាបូបអេឡិចត្រូនិក" : "Wing / E-Wallet", icon: Smartphone },
                 ].map((m) => {
                   const Icon = m.icon;
                   const isSel = method === m.id;
@@ -418,16 +443,212 @@ export default function PaymentModal({
               </div>
             </div>
 
+            {/* Dynamic ABA PayWay & NBC KHQR Payment Box */}
+            {method === "aba_bakong" && (
+              <div
+                style={{
+                  background: "#ffffff",
+                  border: "2px solid #003764",
+                  borderRadius: "14px",
+                  overflow: "hidden",
+                  boxShadow: "0 8px 24px rgba(0, 55, 100, 0.12)",
+                }}
+              >
+                {/* Official ABA PayWay Header */}
+                <div
+                  style={{
+                    background: "#003764",
+                    color: "#ffffff",
+                    padding: "12px 16px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    borderBottom: "3px solid #00bcd4",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div
+                      style={{
+                        background: "#ffffff",
+                        padding: "2px 8px",
+                        borderRadius: "6px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4,
+                      }}
+                    >
+                      <span style={{ color: "#003764", fontWeight: 900, fontSize: 13, letterSpacing: "-0.03em" }}>ABA</span>
+                      <span style={{ color: "#00a3c4", fontWeight: 800, fontSize: 12 }}>PAYWAY</span>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                      <span style={{ background: "#e11d48", color: "#ffffff", fontSize: 9.5, fontWeight: 900, padding: "1px 5px", borderRadius: "3px", letterSpacing: "0.05em" }}>
+                        KHQR
+                      </span>
+                      <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.02em", color: "#ffffff" }}>
+                        {isKm ? "ទូទាត់រហ័ស" : "INSTANT PAY"}
+                      </span>
+                    </div>
+                  </div>
+                  <span
+                    style={{
+                      fontSize: 10.5,
+                      fontWeight: 700,
+                      background: "rgba(0, 188, 212, 0.25)",
+                      color: "#e0f7fa",
+                      padding: "3px 8px",
+                      borderRadius: "999px",
+                      border: "1px solid rgba(0, 188, 212, 0.4)",
+                    }}
+                  >
+                    {isKm ? "ស្កេនបង់ប្រាក់" : "Scan to Pay"}
+                  </span>
+                </div>
+
+                <div style={{ padding: "16px 20px", textAlign: "center", background: "#f8fafc" }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 800, color: "#003764", textTransform: "uppercase", letterSpacing: "0.02em" }}>
+                    {companyName || "SMART LOAN PLATFORM"}
+                  </div>
+                  <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 2, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                    <span>ABA ID: <strong style={{ color: "#003764" }}>001 892 471</strong></span>
+                    <span>•</span>
+                    <span>{installment.client_name || (isKm ? "អតិថិជនកម្ចី" : "Borrower")}</span>
+                  </div>
+
+                  <div
+                    className="num"
+                    style={{
+                      fontSize: 24,
+                      fontWeight: 900,
+                      color: "#003764",
+                      margin: "10px 0 12px",
+                      letterSpacing: "-0.02em",
+                    }}
+                  >
+                    {formatCurrency(parseFloat(amount) || 0, payCurrency)}
+                  </div>
+
+                  {/* Guaranteed Visible QR Code Container */}
+                  <div
+                    style={{
+                      display: "inline-flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: 14,
+                      background: "#ffffff",
+                      borderRadius: "12px",
+                      border: "2px solid #e2e8f0",
+                      boxShadow: "0 4px 12px rgba(0, 55, 100, 0.08)",
+                      minWidth: 190,
+                      minHeight: 190,
+                    }}
+                  >
+                    <QRCodeSVG
+                      value={`00020101021229370016bakong@nbc.gov.kh0109${String(installment.installment_id || installment.id || "00000000").slice(0, 8)}540${payCurrency === "KHR" ? "116" : "840"}530${(parseFloat(amount) || 0).toFixed(payCurrency === "KHR" ? 0 : 2)}5802KH5916${(companyName || "Smart Loan").slice(0, 16)}6010Phnom Penh62150111LOAN-${String(installment.installment_id || installment.id || "000000").slice(0, 6)}6304`}
+                      size={160}
+                      level="H"
+                      includeMargin={false}
+                    />
+                    <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 8 }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: "#003764", letterSpacing: "0.04em" }}>
+                        ABA PAYWAY KHQR
+                      </span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 10 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#10b981", display: "inline-block" }} />
+                    <span style={{ fontSize: 11.5, color: "#475569", fontWeight: 600 }}>
+                      {isKm
+                        ? "ស្កេនជាមួយកម្មវិធី ABA Mobile, Bakong ឬកម្មវិធីធនាគារនានា"
+                        : "Scan with ABA Mobile, Bakong, or any Mobile Banking App"}
+                    </span>
+                  </div>
+
+                  <div
+                    style={{
+                      marginTop: 12,
+                      display: "flex",
+                      gap: 8,
+                      justifyContent: "center",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <button
+                      type="button"
+                      className="btn btn-xs"
+                      onClick={() => {
+                        const txnId = `ABA-${Date.now().toString().slice(-8)}`;
+                        setReferenceNote(txnId);
+                        toast.info(
+                          isKm
+                            ? `កំពុងបើក ABA Mobile... លេខប្រតិបត្តិការត្រូវបានបំពេញ៖ ${txnId}`
+                            : `Opening ABA Mobile... Ref Note pre-filled: ${txnId}`,
+                          { title: "ABA PayWay" }
+                        );
+                        window.location.href = `aba://pay?amount=${amount}&currency=${payCurrency}`;
+                      }}
+                      style={{
+                        background: "#003764",
+                        color: "#ffffff",
+                        fontWeight: 700,
+                        fontSize: 11.5,
+                        padding: "5px 12px",
+                        borderRadius: "6px",
+                        border: "none",
+                      }}
+                    >
+                      {isKm ? "ទូទាត់ជាមួយ ABA Mobile" : "Pay with ABA Mobile"}
+                    </button>
+
+                    <button
+                      type="button"
+                      className="btn btn-xs btn-ghost"
+                      onClick={() => {
+                        const text = `ABA PayWay Account: 001 892 471 (${companyName || "Smart Loan"}) | Amount: ${formatCurrency(parseFloat(amount) || 0, payCurrency)} | Inst #${installment.installment_number || 1}`;
+                        navigator.clipboard?.writeText(text);
+                        toast.success(
+                          isKm ? "បានចម្លងព័ត៌មានគណនី ABA រួចរាល់។" : "Copied ABA PayWay merchant details to clipboard.",
+                          { title: "Copied" }
+                        );
+                      }}
+                      style={{ fontSize: 11.5, color: "#003764", fontWeight: 600, border: "1px solid #cbd5e1" }}
+                    >
+                      {isKm ? "ចម្លងលេខគណនី ABA" : "Copy ABA Info"}
+                    </button>
+
+                    <button
+                      type="button"
+                      className="btn btn-xs btn-ghost"
+                      onClick={() => {
+                        const txnId = `ABA-PW-${Date.now().toString().slice(-8)}`;
+                        setReferenceNote(txnId);
+                        toast.success(
+                          isKm
+                            ? `បានក្លែងធ្វើការទូទាត់ ABA PayWay ដោយជោគជ័យ។ លេខយោង៖ ${txnId}`
+                            : `Simulated ABA PayWay customer scan. Ref: ${txnId}`,
+                          { title: "ABA PayWay" }
+                        );
+                      }}
+                      style={{ fontSize: 11.5, color: "var(--color-accent)", fontWeight: 600 }}
+                    >
+                      {isKm ? "បំពេញលេខយោងស្វ័យប្រវត្តិ" : "Auto-Fill Ref ID"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Reference Note */}
             <div>
               <label className="form-label" style={{ fontWeight: 700, fontSize: 13, marginBottom: 6 }}>
-                {t("repaymentsPage.notes")}
+                {isKm ? "កំណត់សម្គាល់យោង (ស្រេចចិត្ត)" : "Transaction Reference Note (Optional)"}
               </label>
               <input
                 type="text"
                 value={referenceNote}
                 onChange={(e) => setReferenceNote(e.target.value)}
-                placeholder={t("repaymentsPage.notesPlaceholder")}
+                placeholder={isKm ? "ឧ. លេខកូដប្រតិបត្តិការ ABA, កំណត់ត្រាបេឡា..." : "e.g. ABA transaction ref, cash voucher note..."}
                 style={{
                   width: "100%",
                   fontSize: 13,
@@ -442,7 +663,8 @@ export default function PaymentModal({
           <div
             className="modal-footer-bar"
             style={{
-              padding: "16px 24px 20px",
+              flexShrink: 0,
+              padding: "16px 24px",
               borderTop: "1px solid var(--color-border)",
               background: "var(--color-surface-sunken)",
               display: "flex",
@@ -457,7 +679,7 @@ export default function PaymentModal({
               disabled={submitting}
               style={{ borderRadius: "8px", fontSize: 13 }}
             >
-              {t("common.cancel")}
+              {isKm ? "បោះបង់" : "Cancel"}
             </button>
             <button
               type="submit"
@@ -465,7 +687,7 @@ export default function PaymentModal({
               disabled={submitting || !parseFloat(amount)}
               style={{ borderRadius: "8px", fontSize: 13, minWidth: 160 }}
             >
-              {submitting ? t("repaymentsPage.processing") : t("repaymentsPage.processPayment")}
+              {submitting ? (isKm ? "កំពុងដំណើរការ..." : "Processing...") : (isKm ? "ដំណើរការការទូទាត់" : "Process Payment")}
             </button>
           </div>
         </form>

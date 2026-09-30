@@ -10,7 +10,6 @@ import {
   VolumeX,
   Globe,
   Compass,
-  Search,
   Calculator,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -42,6 +41,7 @@ const PRESET_THEMES = [
 
 export default function Topbar() {
   const { t, i18n } = useTranslation();
+  const isKm = i18n.language === "km";
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -79,23 +79,10 @@ export default function Topbar() {
       if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false);
       if (themeRef.current && !themeRef.current.contains(e.target as Node)) setThemeOpen(false);
     }
-    
-    function onKeyDown(e: KeyboardEvent) {
-      if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") return;
-      if (e.key === "/") {
-        e.preventDefault();
-        document.getElementById("global-search-input")?.focus();
-      } else if (e.key.toLowerCase() === "c") {
-        e.preventDefault();
-        setCalcOpen((prev) => !prev);
-      }
-    }
 
     document.addEventListener("mousedown", onClickOutside);
-    document.addEventListener("keydown", onKeyDown);
     return () => {
       document.removeEventListener("mousedown", onClickOutside);
-      document.removeEventListener("keydown", onKeyDown);
     };
   }, []);
 
@@ -118,6 +105,26 @@ export default function Topbar() {
     if (p === "/") return { section: t("sections.overview"), title: t("nav.dashboard") };
     if (p === "/loans") return { section: t("sections.finance"), title: t("nav.loans") };
     if (p === "/repayments") return { section: t("sections.finance"), title: t("nav.repayments") };
+    if (p === "/reports") return { section: t("sections.finance"), title: t("nav.reports") };
+    if (p === "/nbc-provisioning") return { section: t("sections.finance"), title: t("nav.nbcProvisioning") };
+    if (p === "/write-offs") return { section: t("sections.finance"), title: t("nav.writeOffs") };
+    if (p === "/fx-exchange") return { section: t("sections.finance"), title: t("nav.fxExchange") };
+    if (p === "/telegram-bot") return { section: t("sections.finance"), title: t("nav.telegramBot") };
+    if (p === "/loan-intake") return { section: t("sections.directory"), title: t("nav.loanIntake") };
+    if (p === "/collaterals") return { section: t("sections.finance"), title: t("nav.collaterals") };
+    if (p === "/reminders") return { section: t("sections.finance"), title: t("nav.reminders") };
+    if (p === "/cashier-closing") return { section: t("sections.finance"), title: t("nav.cashierClosing") };
+    if (p === "/early-warning") return { section: t("sections.finance"), title: t("nav.earlyWarning") };
+    if (p === "/documents") return { section: t("sections.finance"), title: t("nav.documents") };
+    if (p === "/branches") return { section: t("sections.finance"), title: t("nav.branches") };
+    if (p === "/restructure-simulator") return { section: t("sections.finance"), title: t("nav.restructureSimulator") };
+    if (p === "/loan-calculator") return { section: t("sections.finance"), title: t("nav.loanCalculator") };
+    if (p === "/field-collection") return { section: t("sections.finance"), title: t("nav.fieldCollection") };
+    if (p === "/eod-processing") return { section: t("sections.finance"), title: t("nav.eodProcessing") };
+    if (p === "/risk-watchlist") return { section: t("sections.finance"), title: t("nav.riskWatchlist") };
+    if (p === "/cbc") return { section: t("sections.finance"), title: t("nav.cbc") };
+    if (p === "/guarantors") return { section: t("sections.finance"), title: t("nav.guarantors") };
+    if (p === "/officers") return { section: t("sections.finance"), title: t("nav.officers") };
     if (p.startsWith("/loans/pending-approval")) return { section: t("sections.finance"), title: t("nav.pendingApprovals") };
     if (p.startsWith("/loans/my-requests")) return { section: t("sections.finance"), title: t("nav.myRequests") };
     if (p.startsWith("/loans/")) return { section: t("sections.finance"), title: t("loans.newLoan") };
@@ -126,7 +133,10 @@ export default function Topbar() {
     if (p === "/roles") return { section: t("sections.admin"), title: t("nav.roles") };
     if (p === "/activity-log") return { section: t("sections.system"), title: t("nav.activityLog") };
     if (p === "/settings") return { section: t("sections.system"), title: t("nav.settings") };
-    return { section: websiteName, title: "Enterprise" };
+    return {
+      section: isKm ? "ប្រព័ន្ធគ្រប់គ្រងឥណទាន" : (websiteName || "Smart Loan"),
+      title: isKm ? "សហគ្រាស" : "Enterprise",
+    };
   }
 
   const breadcrumb = getBreadcrumb();
@@ -167,43 +177,8 @@ export default function Topbar() {
         </div>
       </div>
 
-      {/* Center: Global Search */}
-      <div style={{ flex: 1, display: "flex", justifyContent: "center", padding: "0 24px" }}>
-        <div style={{ position: "relative", width: "100%", maxWidth: 360 }}>
-          <Search size={16} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--color-text-muted)" }} />
-          <input
-            id="global-search-input"
-            type="text"
-            placeholder={t("topbar.searchPlaceholder")}
-            style={{
-              width: "100%",
-              padding: "8px 16px 8px 36px",
-              borderRadius: "var(--radius-full)",
-              border: "1px solid var(--color-border)",
-              background: "var(--color-surface-sunken)",
-              fontSize: 13,
-              outline: "none",
-              color: "var(--color-text)",
-              transition: "all 0.2s ease"
-            }}
-            onFocus={(e) => {
-              e.target.style.background = "var(--color-surface)";
-              e.target.style.borderColor = "var(--color-accent)";
-              e.target.style.boxShadow = "0 0 0 3px var(--color-accent-soft)";
-            }}
-            onBlur={(e) => {
-              e.target.style.background = "var(--color-surface-sunken)";
-              e.target.style.borderColor = "var(--color-border)";
-              e.target.style.boxShadow = "none";
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && e.currentTarget.value.trim()) {
-                navigate(`/clients?search=${encodeURIComponent(e.currentTarget.value.trim())}`);
-              }
-            }}
-          />
-        </div>
-      </div>
+      {/* Flexible Spacer */}
+      <div style={{ flex: 1 }} />
 
       {/* Right: Controls & User Profile */}
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -213,10 +188,10 @@ export default function Topbar() {
             value={i18n.language}
             onChange={(e) => setLocale(e.target.value as "en" | "km")}
             className="topbar-lang-select"
-            title="Switch Language"
+            title={isKm ? "ប្តូរភាសា" : "Switch Language"}
           >
-            <option value="en">English (EN)</option>
-            <option value="km">ភាសាខ្មែរ (KM)</option>
+            <option value="km">{isKm ? "ភាសាខ្មែរ" : "Khmer"}</option>
+            <option value="en">{isKm ? "ភាសាអង់គ្លេស" : "English"}</option>
           </select>
         </div>
 
@@ -224,8 +199,8 @@ export default function Topbar() {
         <button
           onClick={() => setCalcOpen(true)}
           className="topbar-btn"
-          aria-label="Smart Loan Simulator"
-          title="Smart Loan Simulator (Press 'C')"
+          aria-label={isKm ? "កម្មវិធីគណនាកម្ចី" : "Smart Loan Simulator"}
+          title={isKm ? "កម្មវិធីគណនាកម្ចី" : "Smart Loan Simulator"}
         >
           <Calculator size={18} />
         </button>
@@ -236,8 +211,12 @@ export default function Topbar() {
         <button
           onClick={toggleSound}
           className="topbar-btn"
-          aria-label="Toggle toast audio cues"
-          title={soundEnabled ? "Alert Audio: ON (click to mute)" : "Alert Audio: MUTED (click to unmute)"}
+          aria-label={isKm ? "បិទ/បើកសំឡេង" : "Toggle toast audio cues"}
+          title={
+            soundEnabled
+              ? isKm ? "សំឡេងជូនដំណឹង៖ បើក (ចុចដើម្បីបិទ)" : "Alert Audio: ON (click to mute)"
+              : isKm ? "សំឡេងជូនដំណឹង៖ បិទ (ចុចដើម្បីបើក)" : "Alert Audio: MUTED (click to unmute)"
+          }
         >
           {soundEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
         </button>
@@ -246,8 +225,12 @@ export default function Topbar() {
         <button
           onClick={toggleMode}
           className="topbar-btn"
-          aria-label="Toggle dark mode"
-          title={mode === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          aria-label={isKm ? "ប្តូរពន្លឺ/ងងឹត" : "Toggle dark mode"}
+          title={
+            mode === "dark"
+              ? isKm ? "ប្តូរទៅទម្រង់ពន្លឺ" : "Switch to light mode"
+              : isKm ? "ប្តូរទៅទម្រង់ងងឹត" : "Switch to dark mode"
+          }
         >
           {mode === "dark" ? <Sun size={18} /> : <Moon size={18} />}
         </button>
@@ -257,8 +240,8 @@ export default function Topbar() {
           <button
             onClick={() => { setThemeOpen((o) => !o); setNotifOpen(false); }}
             className="topbar-btn"
-            aria-label="Theme customizer"
-            title="Customize brand colors"
+            aria-label={isKm ? "កែប្រែពណ៌ និងស្បែក" : "Theme customizer"}
+            title={isKm ? "កែប្រែពណ៌ និងស្បែក" : "Customize brand colors"}
           >
             <Palette size={18} />
           </button>
@@ -328,8 +311,8 @@ export default function Topbar() {
           <button
             onClick={() => { setNotifOpen((o) => !o); setThemeOpen(false); }}
             className="topbar-btn"
-            aria-label="Notifications"
-            title="System notifications"
+            aria-label={t("topbar.notifications")}
+            title={isKm ? "ការជូនដំណឹងប្រព័ន្ធ" : "System notifications"}
           >
             <Bell size={18} />
             {unreadCount > 0 && <span className="topbar-badge" />}
@@ -361,17 +344,22 @@ export default function Topbar() {
         <div className="topbar-divider" />
 
         {/* User Profile Chip */}
-        <div className="topbar-user" title={`Logged in as ${user?.name || "User"}`}>
+        <div className="topbar-user" title={isKm ? `ចូលប្រើជា ${user?.name || "អ្នកប្រើប្រាស់"}` : `Logged in as ${user?.name || "User"}`}>
           <div className="topbar-avatar">{userInitials}</div>
           <div style={{ display: "flex", flexDirection: "column" }}>
-            <span className="topbar-username">{user?.name || "User"}</span>
+            <span className="topbar-username">{user?.name || (isKm ? "អ្នកប្រើប្រាស់" : "User")}</span>
             <span style={{ fontSize: 11, color: "var(--color-accent-text)", fontWeight: 600, lineHeight: 1 }}>
               {t("topbar.administrator")}
             </span>
           </div>
         </div>
 
-        <button onClick={logout} className="topbar-btn" aria-label="Log out" title="Sign out">
+        <button
+          onClick={logout}
+          className="topbar-btn"
+          aria-label={isKm ? "ចាកចេញ" : "Log out"}
+          title={isKm ? "ចាកចេញពីប្រព័ន្ធ" : "Sign out"}
+        >
           <LogOut size={18} />
         </button>
       </div>
