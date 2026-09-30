@@ -23,13 +23,14 @@ export default function PortfolioDistributionDonut({
   overdueCount,
   closedCount = 0,
 }: PortfolioDistributionProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isKm = i18n.language === "km";
 
   const total = activeCount + pendingCount + overdueCount + closedCount;
 
   const data = useMemo(() => {
     if (total === 0) {
-      return [{ name: "No Data", value: 1, color: "var(--color-border)" }];
+      return [{ name: isKm ? "គ្មានទិន្នន័យ" : "No Data", value: 1, color: "var(--color-border)" }];
     }
     const items = [
       { name: t("common.active"), value: activeCount, color: COLORS.active },
@@ -37,10 +38,10 @@ export default function PortfolioDistributionDonut({
       { name: t("common.overdue"), value: overdueCount, color: COLORS.overdue },
     ];
     if (closedCount > 0) {
-      items.push({ name: "Closed", value: closedCount, color: COLORS.closed });
+      items.push({ name: isKm ? "បានបិទ" : "Closed", value: closedCount, color: COLORS.closed });
     }
     return items.filter((i) => i.value > 0);
-  }, [activeCount, pendingCount, overdueCount, closedCount, total, t]);
+  }, [activeCount, pendingCount, overdueCount, closedCount, total, t, isKm]);
 
   return (
     <div className="card" style={{ padding: 24, display: "flex", flexDirection: "column", height: "100%" }}>
@@ -73,7 +74,7 @@ export default function PortfolioDistributionDonut({
             </Pie>
             <Tooltip
               formatter={(val: any, name: any) => [
-                `${val} loans (${total > 0 ? ((Number(val) / total) * 100).toFixed(1) : 0}%)`,
+                `${val} ${isKm ? "កម្ចី" : "loans"} (${total > 0 ? ((Number(val) / total) * 100).toFixed(1) : 0}%)`,
                 name,
               ]}
               contentStyle={{
@@ -102,7 +103,7 @@ export default function PortfolioDistributionDonut({
             {total}
           </div>
           <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 4, fontWeight: 600, textTransform: "uppercase" }}>
-            Total Loans
+            {isKm ? "កម្ចីសរុប" : "Total Loans"}
           </div>
         </div>
       </div>

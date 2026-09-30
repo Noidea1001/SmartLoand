@@ -21,6 +21,16 @@
   --color-accent-hover: #4f46e5;
   --color-accent-soft: #eef2ff;
   --color-accent-text: #818cf8;
+  --color-accent-rgb: 99, 102, 241;
+  --color-accent-shadow: rgba(99, 102, 241, 0.28);
+
+  --color-primary: var(--color-accent);
+  --color-primary-hover: var(--color-accent-hover);
+  --color-primary-light: var(--color-accent-soft);
+  --color-primary-soft: var(--color-accent-soft);
+  --theme-primary: var(--color-accent);
+  --theme-button-bg: var(--color-accent);
+  --theme-button-hover: var(--color-accent-hover);
 
   --color-success: #059669;
   --color-success-soft: #ecfdf5;
@@ -70,7 +80,7 @@
   --shadow-md: 0 4px 12px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.04);
   --shadow-lg: 0 8px 24px rgba(0,0,0,0.08), 0 4px 8px rgba(0,0,0,0.04);
   --shadow-xl: 0 16px 40px rgba(0,0,0,0.1), 0 6px 12px rgba(0,0,0,0.06);
-  --shadow-card-hover: 0 8px 28px rgba(99,102,241,0.08), 0 4px 10px rgba(0,0,0,0.04);
+  --shadow-card-hover: 0 8px 28px rgba(var(--color-accent-rgb, 99, 102, 241), 0.08), 0 4px 10px rgba(0,0,0,0.04);
 
   --font-sans: "Inter", "Kantumruy Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: "Inter", "Kantumruy Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -111,7 +121,7 @@
   --shadow-md: 0 4px 12px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.2);
   --shadow-lg: 0 8px 24px rgba(0,0,0,0.3), 0 4px 8px rgba(0,0,0,0.2);
   --shadow-xl: 0 16px 40px rgba(0,0,0,0.4), 0 6px 12px rgba(0,0,0,0.25);
-  --shadow-card-hover: 0 8px 28px rgba(99,102,241,0.12), 0 4px 10px rgba(0,0,0,0.2);
+  --shadow-card-hover: 0 8px 28px rgba(var(--color-accent-rgb, 99, 102, 241), 0.12), 0 4px 10px rgba(0,0,0,0.2);
 }
 
 
@@ -210,7 +220,7 @@ p { margin: 0; }
 
 .stat-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
   gap: 16px;
   margin-bottom: 28px;
 }
@@ -219,7 +229,7 @@ p { margin: 0; }
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  padding: 22px 20px;
+  padding: 20px 18px;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -227,6 +237,7 @@ p { margin: 0; }
   position: relative;
   overflow: hidden;
   cursor: default;
+  min-width: 0;
 }
 
 .stat-card::before {
@@ -258,14 +269,16 @@ p { margin: 0; }
 }
 
 .stat-value {
-  font-size: 32px;
+  font-size: 26px;
   font-weight: 800;
   letter-spacing: -0.025em;
   color: var(--color-text);
   font-family: var(--font-sans);
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1;
-  line-height: 1.15;
+  line-height: 1.2;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .stat-icon {
@@ -327,7 +340,7 @@ p { margin: 0; }
   background: var(--color-accent-hover);
   border-color: var(--color-accent-hover);
   color: #ffffff;
-  box-shadow: 0 4px 14px rgba(99,102,241,0.3);
+  box-shadow: 0 4px 14px rgba(var(--color-accent-rgb, 99, 102, 241), 0.3);
   transform: translateY(-1px);
 }
 
@@ -803,7 +816,7 @@ tbody tr:last-child td { border-bottom: none; }
   font-family: var(--font-sans);
   flex-shrink: 0;
   transition: background var(--transition);
-  box-shadow: 0 4px 14px rgba(99,102,241,0.3);
+  box-shadow: 0 4px 14px rgba(var(--color-accent-rgb, 99, 102, 241), 0.3);
 }
 
 .sidebar-brand {
@@ -859,7 +872,7 @@ tbody tr:last-child td { border-bottom: none; }
   background: var(--color-accent);
   color: #ffffff;
   font-weight: 700;
-  box-shadow: 0 4px 12px rgba(99,102,241,0.28);
+  box-shadow: 0 4px 12px rgba(var(--color-accent-rgb, 99, 102, 241), 0.28);
 }
 
 .nav-link.active:hover { opacity: 0.95; }
@@ -1620,11 +1633,75 @@ tbody tr:last-child td { border-bottom: none; }
    ================================================================ */
 
 @media print {
+  @page {
+    size: A4 portrait;
+    margin: 6mm 10mm 6mm 10mm;
+  }
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    color: #000 !important;
+    font-size: 11px !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
   .sidebar, header, .topbar, .btn, .no-print { display: none !important; }
   .print-only { display: block !important; }
-  .app-main { padding: 0; }
-  body { background: #fff; color: #000; }
-  .card { border: none; box-shadow: none; }
+  .app-main { padding: 0 !important; margin: 0 !important; }
+  .card { border: none !important; box-shadow: none !important; }
+
+  /* When Agreement Modal is active, completely hide #root so nothing from LoanDetail or background prints! */
+  body.agreement-modal-active #root {
+    display: none !important;
+  }
+  body.agreement-modal-active .print-only {
+    display: none !important;
+  }
+
+  /* Modal print overrides for 1-page contract */
+  .modal-backdrop {
+    position: static !important;
+    inset: auto !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    padding: 0 !important;
+    display: block !important;
+    z-index: auto !important;
+  }
+  .modal-box {
+    box-shadow: none !important;
+    border: none !important;
+    max-height: none !important;
+    height: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+  }
+  .modal-body-scroll, .agreement-paper-container {
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: block !important;
+    width: 100% !important;
+  }
+  .one-page-contract {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 284mm !important;
+    page-break-after: avoid !important;
+    page-break-inside: avoid !important;
+    break-after: avoid !important;
+    break-inside: avoid !important;
+    overflow: hidden !important;
+  }
 }
 
 

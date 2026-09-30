@@ -21,7 +21,8 @@ import type { Product } from "../../api/types";
 import { usePermission } from "../../hooks/usePermission";
 import { useToast } from "../../context/ToastContext";
 import { useConfirm } from "../../context/ConfirmContext";
-import { formatCurrency } from "../../utils/format";
+import { formatCurrency, convertCurrencyAmount } from "../../utils/format";
+import { useBranding } from "../../context/BrandingContext";
 import Pagination from "../../components/ui/Pagination";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 
@@ -50,11 +51,13 @@ export default function ProductList() {
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
+  const { baseCurrency, usdToKhrRate } = useBranding();
+
   // Form Fields
   const [category, setCategory] = useState("Electronics");
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
-  const [currency, setCurrency] = useState<"USD" | "KHR">("USD");
+  const [currency, setCurrency] = useState<"USD" | "KHR">(baseCurrency || "USD");
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -109,7 +112,7 @@ export default function ProductList() {
     setCategory("Electronics");
     setName("");
     setPrice("");
-    setCurrency("USD");
+    setCurrency(baseCurrency || "USD");
     setShowForm(false);
     setEditingProduct(null);
   }
@@ -294,7 +297,10 @@ export default function ProductList() {
             <span className="stats-summary-label">Avg Item Price</span>
             <span className="stats-summary-num">
               {products.length > 0
-                ? formatCurrency(stats.totalValuation / products.length, "USD")
+                ? formatCurrency(
+                    convertCurrencyAmount(stats.totalValuation / products.length, "USD", baseCurrency, usdToKhrRate),
+                    baseCurrency
+                  )
                 : "--"}
             </span>
           </div>

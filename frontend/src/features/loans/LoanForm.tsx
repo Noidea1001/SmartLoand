@@ -15,6 +15,9 @@ import {
   Search,
   UserCheck,
   DollarSign,
+  Shield,
+  FileText,
+  UserPlus,
 } from "lucide-react";
 import { listClients } from "../../api/clients";
 import { listProducts } from "../../api/products";
@@ -22,6 +25,7 @@ import { createLoan } from "../../api/loans";
 import type { Client, Product } from "../../api/types";
 import { useToast } from "../../context/ToastContext";
 import { formatCurrency, formatDate } from "../../utils/format";
+import { useBranding } from "../../context/BrandingContext";
 
 interface LoanFormProps {
   onCreated: () => void;
@@ -46,13 +50,17 @@ export default function LoanForm({
 }: LoanFormProps) {
   const { t } = useTranslation();
   const toast = useToast();
+  const { baseCurrency, usdToKhrRate } = useBranding();
 
   const [clients, setClients] = useState<Client[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [clientId, setClientId] = useState(initialClientId || "");
   const [productId, setProductId] = useState("");
-  const [principal, setPrincipal] = useState(initialPrincipal || "5000");
-  const [currency, setCurrency] = useState<"USD" | "KHR">(initialCurrency || "USD");
+  const effectiveCurrency = initialCurrency || baseCurrency || "USD";
+  const [currency, setCurrency] = useState<"USD" | "KHR">(effectiveCurrency);
+  const [principal, setPrincipal] = useState(
+    initialPrincipal || (effectiveCurrency === "KHR" ? "20000000" : "5000")
+  );
   const [rate, setRate] = useState(initialRate || "1.5");
   const [interestType, setInterestType] = useState<"flat" | "reducing">(initialInterestType || "flat");
   const [termMonths, setTermMonths] = useState(initialTermMonths || "12");
@@ -64,6 +72,27 @@ export default function LoanForm({
   const [submitting, setSubmitting] = useState(false);
   const [borrowerSearch, setBorrowerSearch] = useState("");
   const [isSelectingBorrower, setIsSelectingBorrower] = useState(false);
+
+  // Collateral & Guarantor State (Enterprise Lending Features)
+  const [hasCollateral, setHasCollateral] = useState(false);
+  const [collateralType, setCollateralType] = useState("land_hard_title");
+  const [collateralDesc, setCollateralDesc] = useState("");
+  const [collateralValue, setCollateralValue] = useState("");
+  const [collateralDocRef, setCollateralDocRef] = useState("");
+
+  const [hasGuarantor, setHasGuarantor] = useState(false);
+  const [guarantorName, setGuarantorName] = useState("");
+  const [guarantorPhone, setGuarantorPhone] = useState("");
+  const [guarantorId, setGuarantorId] = useState("");
+  const [guarantorRelation, setGuarantorRelation] = useState("Spouse");
+  const [guarantorIncome, setGuarantorIncome] = useState("");
+
+  const ltvRatio = useMemo(() => {
+    const val = Number(collateralValue) || 0;
+    const p = Number(principal) || 0;
+    if (val <= 0 || p <= 0) return null;
+    return (p / val) * 100;
+  }, [collateralValue, principal]);
 
   useEffect(() => {
     listClients(1, "").then((res) => {
@@ -189,6 +218,19 @@ export default function LoanForm({
         interest_type: interestType,
         term_months: nMonths,
         start_date: startDate,
+        collateral_info: hasCollateral && collateralDesc.trim() ? {
+          asset_type: collateralType,
+          description: collateralDesc.trim(),
+          estimated_value: Number(collateralValue) || 0,
+          document_reference: collateralDocRef.trim(),
+        } : undefined,
+        guarantor_info: hasGuarantor && guarantorName.trim() ? {
+          name: guarantorName.trim(),
+          phone: guarantorPhone.trim(),
+          national_id: guarantorId.trim(),
+          relationship: guarantorRelation,
+          monthly_income: Number(guarantorIncome) || 0,
+        } : undefined,
       });
 
       toast.success(
@@ -300,7 +342,7 @@ export default function LoanForm({
                           width: 36,
                           height: 36,
                           borderRadius: "50%",
-                          background: "linear-gradient(135deg, var(--color-accent), #4f46e5)",
+                          background: "linear-gradient(135deg, var(--color-accent), var(--color-accent-hover))",
                           color: "#fff",
                           display: "flex",
                           alignItems: "center",
@@ -441,7 +483,19 @@ export default function LoanForm({
               <label className="form-label">{t("common.currency")}</label>
               <select
                 value={currency}
-                onChange={(e) => setCurrency(e.target.value as "USD" | "KHR")}
+                onChange={(e) => {
+                  const newCurr = e.target.value as "USD" | "KHR";
+                  if (newCurr !== currency) {
+                    const currentNum = parseFloat(principal) || 0;
+                    const rate = Number(usdToKhrRate) || 4100;
+                    if (newCurr === "KHR" && currentNum > 0) {
+                      setPrincipal(String(Math.round(currentNum * rate)));
+                    } else if (newCurr === "USD" && currentNum > 0) {
+                      setPrincipal(String(Math.max(10, Math.round(currentNum / rate))));
+                    }
+                    setCurrency(newCurr);
+                  }
+                }}
                 style={{ fontWeight: 600 }}
               >
                 <option value="USD">USD ($)</option>
@@ -528,6 +582,224 @@ export default function LoanForm({
               onChange={(e) => setStartDate(e.target.value)}
               required
             />
+          </div>
+
+          {/* Collateral / Asset Security Section */}
+          <div
+            style={{
+              background: "#ffffff",
+              border: "1px solid var(--color-border)",
+              borderRadius: "8px",
+              padding: "14px 16px",
+            }}
+          >
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                cursor: "pointer",
+                margin: 0,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <Shield size={16} color="var(--color-accent)" />
+                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--color-text)" }}>
+                  Collateral & Asset Security (ទ្រព្យបញ្ចាំ)
+                </span>
+              </div>
+              <input
+                type="checkbox"
+                checked={hasCollateral}
+                onChange={(e) => setHasCollateral(e.target.checked)}
+                style={{ width: 18, height: 18, accentColor: "var(--color-accent)", cursor: "pointer" }}
+              />
+            </label>
+
+            {hasCollateral && (
+              <div style={{ marginTop: 14, display: "grid", gap: 12, borderTop: "1px solid var(--color-border)", paddingTop: 12 }}>
+                <div className="form-row">
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label className="form-label" style={{ fontSize: 12 }}>Asset Category</label>
+                    <select
+                      value={collateralType}
+                      onChange={(e) => setCollateralType(e.target.value)}
+                      style={{ borderRadius: "8px", border: "1px solid var(--color-border)", background: "#ffffff" }}
+                    >
+                      <option value="land_hard_title">Real Estate (Hard Title / ប្លង់រឹង)</option>
+                      <option value="land_soft_title">Real Estate (Soft Title / ប្លង់ទន់)</option>
+                      <option value="vehicle_moto">Vehicle (Motorbike / ម៉ូតូ)</option>
+                      <option value="vehicle_car">Vehicle (Car / Truck / ឡាន)</option>
+                      <option value="equipment">Machinery & Equipment</option>
+                      <option value="gold">Gold & Precious Assets</option>
+                      <option value="other">Other Asset</option>
+                    </select>
+                  </div>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label className="form-label" style={{ fontSize: 12 }}>Title / Document / Plate #</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. TL-8891-Kandal / Plate 1AA-9988"
+                      value={collateralDocRef}
+                      onChange={(e) => setCollateralDocRef(e.target.value)}
+                      style={{ borderRadius: "8px", border: "1px solid var(--color-border)", background: "#ffffff" }}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label className="form-label" style={{ fontSize: 12 }}>Estimated Value ({currency})</label>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="e.g. 15000"
+                      value={collateralValue}
+                      onChange={(e) => setCollateralValue(e.target.value)}
+                      style={{ borderRadius: "8px", border: "1px solid var(--color-border)", background: "#ffffff", fontWeight: 700 }}
+                    />
+                  </div>
+                  <div className="form-group" style={{ flex: 1.5 }}>
+                    <label className="form-label" style={{ fontSize: 12 }}>Description & Location</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Land plot 100m2 in Khan Sen Sok, Phnom Penh"
+                      value={collateralDesc}
+                      onChange={(e) => setCollateralDesc(e.target.value)}
+                      style={{ borderRadius: "8px", border: "1px solid var(--color-border)", background: "#ffffff" }}
+                    />
+                  </div>
+                </div>
+
+                {/* Live LTV Indicator */}
+                {ltvRatio !== null && (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "8px 12px",
+                      borderRadius: "6px",
+                      background: ltvRatio <= 70 ? "rgba(16, 185, 129, 0.08)" : ltvRatio <= 100 ? "rgba(245, 158, 11, 0.08)" : "rgba(239, 68, 68, 0.08)",
+                      border: `1px solid ${ltvRatio <= 70 ? "rgba(16, 185, 129, 0.3)" : ltvRatio <= 100 ? "rgba(245, 158, 11, 0.3)" : "rgba(239, 68, 68, 0.3)"}`,
+                      fontSize: 12,
+                    }}
+                  >
+                    <span style={{ fontWeight: 600, color: "var(--color-text)" }}>
+                      Loan-to-Value (LTV) Ratio:
+                    </span>
+                    <span
+                      className="num"
+                      style={{
+                        fontWeight: 800,
+                        color: ltvRatio <= 70 ? "var(--color-success)" : ltvRatio <= 100 ? "var(--color-warning)" : "var(--color-danger)",
+                      }}
+                    >
+                      {ltvRatio.toFixed(1)}% — {ltvRatio <= 70 ? "Well Secured (Low Risk)" : ltvRatio <= 100 ? "Acceptable Coverage" : "Under-collateralized"}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Guarantor / Co-Borrower Section */}
+          <div
+            style={{
+              background: "#ffffff",
+              border: "1px solid var(--color-border)",
+              borderRadius: "8px",
+              padding: "14px 16px",
+            }}
+          >
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                cursor: "pointer",
+                margin: 0,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <UserPlus size={16} color="var(--color-accent)" />
+                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--color-text)" }}>
+                  Guarantor / Co-Borrower (អ្នកធានា)
+                </span>
+              </div>
+              <input
+                type="checkbox"
+                checked={hasGuarantor}
+                onChange={(e) => setHasGuarantor(e.target.checked)}
+                style={{ width: 18, height: 18, accentColor: "var(--color-accent)", cursor: "pointer" }}
+              />
+            </label>
+
+            {hasGuarantor && (
+              <div style={{ marginTop: 14, display: "grid", gap: 12, borderTop: "1px solid var(--color-border)", paddingTop: 12 }}>
+                <div className="form-row">
+                  <div className="form-group" style={{ flex: 1.2 }}>
+                    <label className="form-label" style={{ fontSize: 12 }}>Guarantor Full Name *</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Sokha Vanna"
+                      value={guarantorName}
+                      onChange={(e) => setGuarantorName(e.target.value)}
+                      style={{ borderRadius: "8px", border: "1px solid var(--color-border)", background: "#ffffff", fontWeight: 600 }}
+                    />
+                  </div>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label className="form-label" style={{ fontSize: 12 }}>Phone Number</label>
+                    <input
+                      type="tel"
+                      placeholder="e.g. 012 345 678"
+                      value={guarantorPhone}
+                      onChange={(e) => setGuarantorPhone(e.target.value)}
+                      style={{ borderRadius: "8px", border: "1px solid var(--color-border)", background: "#ffffff" }}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label className="form-label" style={{ fontSize: 12 }}>National ID / Passport</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 010992384"
+                      value={guarantorId}
+                      onChange={(e) => setGuarantorId(e.target.value)}
+                      style={{ borderRadius: "8px", border: "1px solid var(--color-border)", background: "#ffffff" }}
+                    />
+                  </div>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label className="form-label" style={{ fontSize: 12 }}>Relationship</label>
+                    <select
+                      value={guarantorRelation}
+                      onChange={(e) => setGuarantorRelation(e.target.value)}
+                      style={{ borderRadius: "8px", border: "1px solid var(--color-border)", background: "#ffffff" }}
+                    >
+                      <option value="Spouse">Spouse (ប្តី/ប្រពន្ធ)</option>
+                      <option value="Parent">Parent (ឪពុកម្តាយ)</option>
+                      <option value="Sibling">Sibling (បងប្អូន)</option>
+                      <option value="Business Partner">Business Partner (ដៃគូអាជីវកម្ម)</option>
+                      <option value="Employer">Employer (និយោជក)</option>
+                      <option value="Other">Other (ផ្សេងទៀត)</option>
+                    </select>
+                  </div>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label className="form-label" style={{ fontSize: 12 }}>Monthly Income ({currency})</label>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="e.g. 800"
+                      value={guarantorIncome}
+                      onChange={(e) => setGuarantorIncome(e.target.value)}
+                      style={{ borderRadius: "8px", border: "1px solid var(--color-border)", background: "#ffffff" }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Advanced Accordion Toggle */}

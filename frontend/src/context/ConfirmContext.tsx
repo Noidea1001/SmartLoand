@@ -62,7 +62,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            zIndex: 9998,
+            zIndex: 10005,
             padding: 16,
             animation: "fade-in 0.15s ease-out",
           }}

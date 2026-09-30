@@ -4,10 +4,13 @@ import { Link } from "react-router-dom";
 import { ClipboardCheck, CheckCircle2, ArrowRight, Clock } from "lucide-react";
 import { listPendingApprovals } from "../../api/loans";
 import type { Loan } from "../../api/types";
-import { formatCurrency, formatDate } from "../../utils/format";
+import { formatCurrency, formatDate, convertCurrencyAmount } from "../../utils/format";
+import { useBranding } from "../../context/BrandingContext";
 
 export default function PendingApprovalsQueue() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isKm = i18n.language === "km";
+  const { baseCurrency, usdToKhrRate } = useBranding();
   const [loans, setLoans] = useState<Loan[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -43,7 +46,7 @@ export default function PendingApprovalsQueue() {
             gap: 4,
           }}
         >
-          <span>View All</span>
+          <span>{isKm ? "មើលទាំងអស់" : "View All"}</span>
           <ArrowRight size={14} />
         </Link>
       </div>
@@ -120,10 +123,10 @@ export default function PendingApprovalsQueue() {
                 </div>
                 <div>
                   <div style={{ fontSize: 13.5, fontWeight: 700 }}>
-                    {loan.client_name || "Borrower"}
+                    {loan.client_name || (isKm ? "អ្នកខ្ចី" : "Borrower")}
                   </div>
                   <div style={{ fontSize: 11.5, color: "var(--color-text-muted)", display: "flex", alignItems: "center", gap: 8 }}>
-                    <span className="num">{loan.term_months}m @ {loan.interest_rate_percent}%</span>
+                    <span className="num">{loan.term_months}{isKm ? "ខែ" : "m"} @ {loan.interest_rate_percent}%</span>
                     <span>•</span>
                     <span>{formatDate(loan.start_date)}</span>
                   </div>
@@ -135,8 +138,13 @@ export default function PendingApprovalsQueue() {
                   <div className="num" style={{ fontSize: 14.5, fontWeight: 800, color: "var(--color-accent)" }}>
                     {formatCurrency(loan.principal_amount, loan.principal_currency)}
                   </div>
-                  <div style={{ fontSize: 10, color: "var(--color-warning)", fontWeight: 700, textTransform: "uppercase" }}>
-                    Pending
+                  {loan.principal_currency !== baseCurrency && (
+                    <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
+                      ≈ {formatCurrency(convertCurrencyAmount(loan.principal_amount, loan.principal_currency, baseCurrency, usdToKhrRate), baseCurrency)}
+                    </div>
+                  )}
+                  <div style={{ fontSize: 10, color: "var(--color-warning)", fontWeight: 700, textTransform: "uppercase", marginTop: 2 }}>
+                    {isKm ? "រង់ចាំអនុម័ត" : "Pending"}
                   </div>
                 </div>
 

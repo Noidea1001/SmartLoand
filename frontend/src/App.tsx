@@ -17,6 +17,27 @@ import MyRequests from "./features/loans/MyRequests";
 import RoleList from "./features/roles/RoleList";
 import Settings from "./features/settings/Settings";
 import ActivityLog from "./features/activity-log/ActivityLog";
+import ReportsCenter from "./features/reports/ReportsCenter";
+import CollateralVault from "./features/collaterals/CollateralVault";
+import ReminderCenter from "./features/reminders/ReminderCenter";
+import CashierClosing from "./features/cashier/CashierClosing";
+import OfficerAnalytics from "./features/officers/OfficerAnalytics";
+import GuarantorRegistry from "./features/guarantors/GuarantorRegistry";
+import CbcExportCenter from "./features/cbc/CbcExportCenter";
+import EarlyWarningSystem from "./features/early-warning/EarlyWarningSystem";
+import DocumentVault from "./features/documents/DocumentVault";
+import BranchManagement from "./features/branches/BranchManagement";
+import RestructureSimulator from "./features/restructure/RestructureSimulator";
+import LoanCalculator from "./features/calculator/LoanCalculator";
+import FieldCollectionSheet from "./features/field-collection/FieldCollectionSheet";
+import EodProcessing from "./features/eod/EodProcessing";
+import RiskWatchlist from "./features/watchlist/RiskWatchlist";
+import NbcProvisioning from "./features/nbc/NbcProvisioning";
+import WriteOffTracker from "./features/writeoffs/WriteOffTracker";
+import FxExchangeDrawer from "./features/fx/FxExchangeDrawer";
+import TelegramBotDispatcher from "./features/telegram/TelegramBotDispatcher";
+import LoanIntakeLeads from "./features/leads/LoanIntakeLeads";
+import PublicLoanApply from "./features/leads/PublicLoanApply";
 
 export default function App() {
   return (
@@ -27,6 +48,7 @@ export default function App() {
             <AuthProvider>
             <Routes>
               <Route path="/login" element={<Login />} />
+              <Route path="/apply" element={<PublicLoanApply />} />
 
               <Route
                 path="/"
@@ -42,6 +64,26 @@ export default function App() {
                 <Route path="loans/pending-approval" element={<PendingApprovals />} />
                 <Route path="loans/my-requests" element={<MyRequests />} />
                 <Route path="loans/:id" element={<LoanDetail />} />
+                <Route path="reports" element={<ReportsCenter />} />
+                <Route path="nbc-provisioning" element={<NbcProvisioning />} />
+                <Route path="write-offs" element={<WriteOffTracker />} />
+                <Route path="fx-exchange" element={<FxExchangeDrawer />} />
+                <Route path="telegram-bot" element={<TelegramBotDispatcher />} />
+                <Route path="loan-intake" element={<LoanIntakeLeads />} />
+                <Route path="collaterals" element={<CollateralVault />} />
+                <Route path="reminders" element={<ReminderCenter />} />
+                <Route path="cashier-closing" element={<CashierClosing />} />
+                <Route path="officers" element={<OfficerAnalytics />} />
+                <Route path="guarantors" element={<GuarantorRegistry />} />
+                <Route path="cbc" element={<CbcExportCenter />} />
+                <Route path="early-warning" element={<EarlyWarningSystem />} />
+                <Route path="documents" element={<DocumentVault />} />
+                <Route path="branches" element={<BranchManagement />} />
+                <Route path="restructure-simulator" element={<RestructureSimulator />} />
+                <Route path="loan-calculator" element={<LoanCalculator />} />
+                <Route path="field-collection" element={<FieldCollectionSheet />} />
+                <Route path="eod-processing" element={<EodProcessing />} />
+                <Route path="risk-watchlist" element={<RiskWatchlist />} />
                 <Route path="clients" element={<ClientList />} />
                 <Route path="products" element={<ProductList />} />
                 <Route path="roles" element={<RoleList />} />

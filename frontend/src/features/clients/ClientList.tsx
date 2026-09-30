@@ -556,7 +556,7 @@ export default function ClientList() {
                             width: 42,
                             height: 42,
                             borderRadius: "50%",
-                            background: "linear-gradient(135deg, var(--color-accent), #4f46e5)",
+                            background: "linear-gradient(135deg, var(--color-accent), var(--color-accent-hover))",
                             color: "#fff",
                             display: "flex",
                             alignItems: "center",

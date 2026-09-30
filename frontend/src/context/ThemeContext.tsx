@@ -46,6 +46,15 @@ function getStoredColors(): ThemeColors {
   return DEFAULT_COLORS;
 }
 
+function hexToRGB(hex: string): { r: number; g: number; b: number } {
+  hex = hex.replace("#", "");
+  return {
+    r: parseInt(hex.substring(0, 2), 16) || 0,
+    g: parseInt(hex.substring(2, 4), 16) || 0,
+    b: parseInt(hex.substring(4, 6), 16) || 0,
+  };
+}
+
 function hexToHSL(hex: string): { h: number; s: number; l: number } {
   hex = hex.replace("#", "");
   const r = parseInt(hex.substring(0, 2), 16) / 255;
@@ -103,10 +112,22 @@ function applyThemeVars(mode: ThemeMode, colors: ThemeColors) {
 
   // Button / accent color
   const btnVariants = generateColorVariants(colors.buttonColor);
+  const rgb = hexToRGB(colors.buttonColor);
   root.style.setProperty("--color-accent", btnVariants.base);
   root.style.setProperty("--color-accent-hover", btnVariants.hover);
   root.style.setProperty("--color-accent-soft", mode === "dark" ? btnVariants.softDark : btnVariants.soft);
   root.style.setProperty("--color-accent-text", btnVariants.text);
+  root.style.setProperty("--color-accent-rgb", `${rgb.r}, ${rgb.g}, ${rgb.b}`);
+  root.style.setProperty("--color-accent-shadow", `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.28)`);
+
+  // System aliases ensuring every button, link, and highlight in the platform changes with theme
+  root.style.setProperty("--color-primary", btnVariants.base);
+  root.style.setProperty("--color-primary-hover", btnVariants.hover);
+  root.style.setProperty("--color-primary-light", mode === "dark" ? btnVariants.softDark : btnVariants.soft);
+  root.style.setProperty("--color-primary-soft", mode === "dark" ? btnVariants.softDark : btnVariants.soft);
+  root.style.setProperty("--theme-primary", btnVariants.base);
+  root.style.setProperty("--theme-button-bg", btnVariants.base);
+  root.style.setProperty("--theme-button-hover", btnVariants.hover);
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {

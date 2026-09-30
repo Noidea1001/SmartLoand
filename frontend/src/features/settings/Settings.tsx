@@ -7,7 +7,6 @@ import {
   DollarSign,
   Percent,
   Calendar,
-  Check,
   Save,
   RotateCcw,
   Server,
@@ -15,6 +14,10 @@ import {
   Building,
   Sparkles,
   TrendingUp,
+  FileCheck,
+  Lock,
+  Database,
+  Check,
 } from "lucide-react";
 import { getSettings, updateSettings, type TenantSettings } from "../../api/settings";
 import { useToast } from "../../context/ToastContext";
@@ -24,8 +27,9 @@ import { setLocale } from "../../i18n/i18n";
 import { formatCurrency } from "../../utils/format";
 
 export default function Settings() {
-  useDocumentTitle("Settings");
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
+  const isKm = i18n.language === "km";
+  useDocumentTitle(isKm ? "ការកំណត់ប្រព័ន្ធ & ស្ថាប័ន" : "System & Institutional Settings");
   const toast = useToast();
   const { setBranding } = useBranding();
 
@@ -42,7 +46,7 @@ export default function Settings() {
   const [gracePeriod, setGracePeriod] = useState("3");
   const [lateFee, setLateFee] = useState("2.0");
   const [interestType, setInterestType] = useState<"flat" | "reducing">("reducing");
-  const [localeState, setLocaleState] = useState<"en" | "km">("en");
+  const [localeState, setLocaleState] = useState<"en" | "km">("km");
   const [rateUpdatedAt, setRateUpdatedAt] = useState<string>("");
 
   // Track original values to reset
@@ -66,12 +70,12 @@ export default function Settings() {
         }
       })
       .catch(() => {
-        toast.error(t("settingsPage.saveError"));
+        toast.error(isKm ? "បរាជ័យក្នុងការទាញយកការកំណត់" : "Failed to load settings.");
       })
       .finally(() => {
         setLoading(false);
       });
-  }, [i18n.language, t, toast]);
+  }, [i18n.language]);
 
   function handleReset() {
     if (!initialData) return;
@@ -84,12 +88,12 @@ export default function Settings() {
     setLateFee(initialData.late_fee_percent || "2.0");
     setInterestType((initialData.default_interest_type as "flat" | "reducing") || "reducing");
     setLocaleState(initialData.locale === "km" ? "km" : "en");
-    toast.info("Settings restored to previous saved state.");
+    toast.info(isKm ? "បានត្រឡប់ទៅការកំណត់ដើមវិញ" : "Settings restored to previous saved state.");
   }
 
   async function handleSave() {
     if (!websiteName.trim()) {
-      toast.warning("Website name cannot be empty.");
+      toast.warning(isKm ? "ឈ្មោះគេហទំព័រមិនអាចទុកទទេបានទេ" : "Website name cannot be empty.");
       return;
     }
 
@@ -112,6 +116,7 @@ export default function Settings() {
         websiteName: websiteName.trim(),
         companyName: companyName.trim(),
         tagline: tagline.trim(),
+        baseCurrency: baseCurrency,
         usdToKhrRate: Number(rate) || 4100,
       });
 
@@ -119,9 +124,9 @@ export default function Settings() {
         setLocale(localeState);
       }
 
-      toast.success(t("settingsPage.saveSuccess"));
+      toast.success(isKm ? "បានរក្សាទុកការកំណត់ប្រព័ន្ធដោយជោគជ័យ" : "Settings saved successfully.");
     } catch {
-      toast.error(t("settingsPage.saveError"));
+      toast.error(isKm ? "បរាជ័យក្នុងការរក្សាទុកការកំណត់" : "Failed to save settings.");
     } finally {
       setSaving(false);
     }
@@ -130,7 +135,7 @@ export default function Settings() {
   if (loading) {
     return (
       <div style={{ padding: 48, textAlign: "center", color: "var(--color-text-muted)" }}>
-        {t("common.loading")}
+        {isKm ? "កំពុងទាញយកការកំណត់..." : "Loading configuration..."}
       </div>
     );
   }
@@ -138,7 +143,7 @@ export default function Settings() {
   const numericRate = parseFloat(rate) || 4100;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20, maxWidth: 960, margin: "0 auto" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 22, maxWidth: 1100, margin: "0 auto", padding: "24px 28px" }}>
       {/* Header Banner */}
       <div
         style={{
@@ -166,11 +171,13 @@ export default function Settings() {
             <SettingsIcon size={22} />
           </div>
           <div>
-            <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: "-0.02em" }}>
-              {t("settingsPage.title")}
+            <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: "var(--color-text)" }}>
+              {isKm ? "ការកំណត់ទូទៅរបស់ស្ថាប័ន & ប្រព័ន្ធ (System Configuration)" : "Institutional Settings & Core Configuration"}
             </h1>
             <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--color-text-muted)" }}>
-              {t("settingsPage.subtitle")}
+              {isKm
+                ? "កំណត់ប៉ារ៉ាម៉ែត្រហិរញ្ញវត្ថុ អត្រាប្តូរប្រាក់ NBC ម៉ាកយីហោ និងគោលនយោបាយឥណទាន"
+                : "Manage institutional branding, official NBC foreign exchange rates, interest calculation standards, and core policy"}
             </p>
           </div>
         </div>
@@ -179,29 +186,23 @@ export default function Settings() {
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <button
             type="button"
-            className="btn btn-ghost"
+            className="btn btn-secondary"
             onClick={handleReset}
             disabled={saving}
-            style={{ borderRadius: "8px", fontSize: 13 }}
+            style={{ fontSize: 13 }}
           >
             <RotateCcw size={15} />
-            <span>Discard Changes</span>
+            <span>{isKm ? "បោះបង់ការកែប្រែ" : "Discard Changes"}</span>
           </button>
           <button
             type="button"
             className="btn btn-primary"
             onClick={handleSave}
             disabled={saving}
-            style={{ borderRadius: "8px", fontSize: 13, minWidth: 140 }}
+            style={{ fontSize: 13, minWidth: 140, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
           >
-            {saving ? (
-              <span>{t("settingsPage.saving")}</span>
-            ) : (
-              <>
-                <Save size={15} />
-                <span>{t("settingsPage.saveButton")}</span>
-              </>
-            )}
+            <Save size={15} />
+            <span>{saving ? (isKm ? "កំពុងរក្សាទុក..." : "Saving...") : (isKm ? "រក្សាទុកការកំណត់" : "Save Changes")}</span>
           </button>
         </div>
       </div>
@@ -215,7 +216,7 @@ export default function Settings() {
           padding: 4,
           borderRadius: "8px",
           border: "1px solid var(--color-border)",
-          maxWidth: 520,
+          maxWidth: 600,
         }}
       >
         <button
@@ -234,13 +235,13 @@ export default function Settings() {
             border: "none",
             cursor: "pointer",
             background: activeTab === "branding" ? "var(--color-surface)" : "transparent",
-            color: activeTab === "branding" ? "var(--color-text)" : "var(--color-text-secondary)",
-            boxShadow: activeTab === "branding" ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
+            color: activeTab === "branding" ? "var(--color-text)" : "var(--color-text-muted)",
+            boxShadow: activeTab === "branding" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
             transition: "all 0.15s ease",
           }}
         >
           <Globe size={15} color={activeTab === "branding" ? "var(--color-accent)" : "currentColor"} />
-          <span>{t("settingsPage.brandingTab")}</span>
+          <span>{isKm ? "ស្ថាប័ន & ម៉ាកយីហោ" : "Identity & Branding"}</span>
         </button>
 
         <button
@@ -259,13 +260,13 @@ export default function Settings() {
             border: "none",
             cursor: "pointer",
             background: activeTab === "financial" ? "var(--color-surface)" : "transparent",
-            color: activeTab === "financial" ? "var(--color-text)" : "var(--color-text-secondary)",
-            boxShadow: activeTab === "financial" ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
+            color: activeTab === "financial" ? "var(--color-text)" : "var(--color-text-muted)",
+            boxShadow: activeTab === "financial" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
             transition: "all 0.15s ease",
           }}
         >
           <DollarSign size={15} color={activeTab === "financial" ? "var(--color-accent)" : "currentColor"} />
-          <span>{t("settingsPage.financialTab")}</span>
+          <span>{isKm ? "គោលនយោបាយហិរញ្ញវត្ថុ" : "Financial Policies"}</span>
         </button>
 
         <button
@@ -284,13 +285,13 @@ export default function Settings() {
             border: "none",
             cursor: "pointer",
             background: activeTab === "system" ? "var(--color-surface)" : "transparent",
-            color: activeTab === "system" ? "var(--color-text)" : "var(--color-text-secondary)",
-            boxShadow: activeTab === "system" ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
+            color: activeTab === "system" ? "var(--color-text)" : "var(--color-text-muted)",
+            boxShadow: activeTab === "system" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
             transition: "all 0.15s ease",
           }}
         >
           <Server size={15} color={activeTab === "system" ? "var(--color-accent)" : "currentColor"} />
-          <span>{t("settingsPage.systemTab")}</span>
+          <span>{isKm ? "ប្រព័ន្ធ & សុវត្ថិភាព" : "System & Security"}</span>
         </button>
       </div>
 
@@ -298,11 +299,8 @@ export default function Settings() {
       {activeTab === "branding" && (
         <div style={{ display: "grid", gap: 16 }}>
           <div
+            className="card"
             style={{
-              background: "var(--color-surface)",
-              borderRadius: "14px",
-              border: "1px solid var(--color-border)",
-              boxShadow: "var(--shadow-sm)",
               padding: 24,
               display: "grid",
               gap: 20,
@@ -310,100 +308,68 @@ export default function Settings() {
           >
             <div>
               <h3 style={{ margin: "0 0 4px", fontSize: 16, fontWeight: 700, color: "var(--color-text)" }}>
-                {t("settingsPage.websiteName")}
+                {isKm ? "ឈ្មោះកម្មវិធី / ប្រព័ន្ធប្រតិបត្តិការ (System Title)" : "System Operating Title"}
               </h3>
               <p style={{ margin: "0 0 10px", fontSize: 12.5, color: "var(--color-text-muted)" }}>
-                {t("settingsPage.websiteNameDesc")}
+                {isKm ? "បង្ហាញនៅរបារខាងឆ្វេង (Sidebar) ផ្នែកខាងលើ និងក្បាលទំព័ររបាយការណ៍" : "Displayed in the sidebar, browser title, and header of generated reports"}
               </p>
               <input
                 type="text"
                 value={websiteName}
                 onChange={(e) => setWebsiteName(e.target.value)}
-                placeholder="e.g. Smart Loan Platform"
-                style={{
-                  width: "100%",
-                  fontSize: 15,
-                  fontWeight: 600,
-                  padding: "10px 14px",
-                  borderRadius: "8px",
-                }}
+                placeholder="Smart Loan Cambodia"
+                className="input"
+                style={{ width: "100%", fontSize: 15, fontWeight: 600 }}
               />
             </div>
 
             <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: 20 }}>
               <h3 style={{ margin: "0 0 4px", fontSize: 16, fontWeight: 700, color: "var(--color-text)" }}>
-                {t("settingsPage.companyName")}
+                {isKm ? "ឈ្មោះស្ថាប័នផ្លូវការ (Legal Company Name)" : "Institution Legal Name"}
               </h3>
               <p style={{ margin: "0 0 10px", fontSize: 12.5, color: "var(--color-text-muted)" }}>
-                {t("settingsPage.companyNameDesc")}
+                {isKm ? "ឈ្មោះផ្លូវការដែលត្រូវបោះពុម្ពលើកិច្ចសន្យាកម្ចី បង្កាន់ដៃបង់ប្រាក់ និងលិខិតផ្លូវការ" : "Full registered legal name printed on loan agreements, payment receipts, and official returns"}
               </p>
               <input
                 type="text"
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
-                placeholder="e.g. Smart Loan Enterprise PLC"
-                style={{
-                  width: "100%",
-                  fontSize: 15,
-                  fontWeight: 600,
-                  padding: "10px 14px",
-                  borderRadius: "8px",
-                }}
+                placeholder="Smart Loan Enterprise PLC"
+                className="input"
+                style={{ width: "100%", fontSize: 15, fontWeight: 600 }}
               />
             </div>
 
             <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: 20 }}>
               <h3 style={{ margin: "0 0 4px", fontSize: 16, fontWeight: 700, color: "var(--color-text)" }}>
-                {t("settingsPage.tagline")}
+                {isKm ? "ពាក្យស្លោកស្ថាប័ន (Tagline)" : "Institutional Tagline"}
               </h3>
               <p style={{ margin: "0 0 10px", fontSize: 12.5, color: "var(--color-text-muted)" }}>
-                {t("settingsPage.taglineDesc")}
+                {isKm ? "ពាក្យស្លោកខ្លីបង្ហាញនៅក្រោមឈ្មោះស្ថាប័ន" : "Short corporate slogan displayed beneath institutional title"}
               </p>
               <input
                 type="text"
                 value={tagline}
                 onChange={(e) => setTagline(e.target.value)}
-                placeholder="e.g. Credit Suite"
-                style={{
-                  width: "100%",
-                  fontSize: 15,
-                  fontWeight: 600,
-                  padding: "10px 14px",
-                  borderRadius: "8px",
-                }}
+                placeholder="Core Banking & Microfinance Suite"
+                className="input"
+                style={{ width: "100%", fontSize: 15, fontWeight: 600 }}
               />
             </div>
 
             <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: 20 }}>
               <h3 style={{ margin: "0 0 4px", fontSize: 16, fontWeight: 700, color: "var(--color-text)" }}>
-                Default System Language
+                {isKm ? "ភាសាដើមរបស់ប្រព័ន្ធ (Default System Language)" : "Default System Language"}
               </h3>
               <p style={{ margin: "0 0 10px", fontSize: 12.5, color: "var(--color-text-muted)" }}>
-                Select the default language used for new sessions and unauthenticated interfaces.
+                {isKm ? "ជ្រើសរើសភាសាសម្រាប់គណនីថ្មី និងទំព័រសាធារណៈរបស់ប្រព័ន្ធ" : "Select default language applied to initial sessions and public application pages"}
               </p>
               <div style={{ display: "flex", gap: 10 }}>
                 <button
                   type="button"
-                  onClick={() => setLocaleState("en")}
-                  style={{
-                    padding: "8px 16px",
-                    borderRadius: "8px",
-                    fontSize: 13,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    border: localeState === "en" ? "1.5px solid var(--color-accent)" : "1px solid var(--color-border)",
-                    background: localeState === "en" ? "var(--color-accent-soft)" : "var(--color-surface)",
-                    color: localeState === "en" ? "var(--color-accent)" : "var(--color-text)",
-                    transition: "all 0.15s ease",
-                  }}
-                >
-                  English (EN)
-                </button>
-                <button
-                  type="button"
                   onClick={() => setLocaleState("km")}
                   style={{
-                    padding: "8px 16px",
+                    padding: "8px 18px",
                     borderRadius: "8px",
                     fontSize: 13,
                     fontWeight: 700,
@@ -416,6 +382,23 @@ export default function Settings() {
                 >
                   ភាសាខ្មែរ (Khmer)
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setLocaleState("en")}
+                  style={{
+                    padding: "8px 18px",
+                    borderRadius: "8px",
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    border: localeState === "en" ? "1.5px solid var(--color-accent)" : "1px solid var(--color-border)",
+                    background: localeState === "en" ? "var(--color-accent-soft)" : "var(--color-surface)",
+                    color: localeState === "en" ? "var(--color-accent)" : "var(--color-text)",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  English (EN)
+                </button>
               </div>
             </div>
           </div>
@@ -426,11 +409,8 @@ export default function Settings() {
       {activeTab === "financial" && (
         <div style={{ display: "grid", gap: 16 }}>
           <div
+            className="card"
             style={{
-              background: "var(--color-surface)",
-              borderRadius: "14px",
-              border: "1px solid var(--color-border)",
-              boxShadow: "var(--shadow-sm)",
               padding: 24,
               display: "grid",
               gap: 20,
@@ -440,19 +420,21 @@ export default function Settings() {
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
                 <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "var(--color-text)" }}>
-                  {t("settingsPage.exchangeRate")}
+                  {isKm ? "អត្រាប្តូរប្រាក់ផ្លូវការ (USD ⇄ KHR Exchange Rate)" : "Official Exchange Rate (USD ⇄ KHR)"}
                 </h3>
                 {rateUpdatedAt && (
                   <span style={{ fontSize: 12, color: "var(--color-text-muted)" }}>
-                    {t("settingsPage.rateUpdated")}: {rateUpdatedAt}
+                    {isKm ? `បានធ្វើបច្ចុប្បន្នភាព: ${rateUpdatedAt}` : `Last updated: ${rateUpdatedAt}`}
                   </span>
                 )}
               </div>
               <p style={{ margin: "0 0 10px", fontSize: 12.5, color: "var(--color-text-muted)" }}>
-                Official operational conversion rate from 1 USD to Cambodian Riel (KHR).
+                {isKm
+                  ? "អត្រាប្តូរប្រាក់យោងផ្លូវការពី 1 USD ទៅប្រាក់រៀលខ្មែរ (KHR) សម្រាប់គណនាកម្ចី និងរបាយការណ៍បង្រួបបង្រួម"
+                  : "Official operational exchange rate from $1.00 USD to Cambodian Riel (KHR) for dual-currency accounting"}
               </p>
 
-              <div style={{ display: "flex", alignItems: "center", gap: 12, maxWidth: 360 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, maxWidth: 380 }}>
                 <input
                   type="number"
                   step="1"
@@ -460,18 +442,15 @@ export default function Settings() {
                   max="5000"
                   value={rate}
                   onChange={(e) => setRate(e.target.value)}
+                  className="input"
                   style={{
                     fontSize: 16,
                     fontWeight: 700,
-                    fontFamily: "var(--font-sans)",
-                    fontVariantNumeric: "tabular-nums",
-                    padding: "9px 12px",
-                    borderRadius: "8px",
                     width: 160,
                   }}
                 />
-                <span style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text-secondary)" }}>
-                  KHR per $1.00 USD
+                <span style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text-muted)" }}>
+                  {isKm ? "រៀល ក្នុង $1.00 ដុល្លារ" : "KHR per $1.00 USD"}
                 </span>
               </div>
 
@@ -481,13 +460,13 @@ export default function Settings() {
                   display: "flex",
                   gap: 16,
                   alignItems: "center",
+                  flexWrap: "wrap",
                   marginTop: 10,
                   padding: "10px 14px",
                   borderRadius: "8px",
                   background: "var(--color-surface-sunken)",
                   border: "1px solid var(--color-border)",
                   fontSize: 12.5,
-                  fontVariantNumeric: "tabular-nums",
                 }}
               >
                 <span>$100 = <strong>{formatCurrency(100 * numericRate, "KHR")}</strong></span>
@@ -501,17 +480,17 @@ export default function Settings() {
             {/* Base Currency */}
             <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: 20 }}>
               <h3 style={{ margin: "0 0 4px", fontSize: 16, fontWeight: 700, color: "var(--color-text)" }}>
-                {t("settingsPage.baseCurrency")}
+                {isKm ? "រូបិយប័ណ្ណគោលរបស់ស្ថាប័ន (Institutional Base Currency)" : "Institutional Base Currency"}
               </h3>
               <p style={{ margin: "0 0 10px", fontSize: 12.5, color: "var(--color-text-muted)" }}>
-                Standard base currency for aggregated reporting and system metrics.
+                {isKm ? "រូបិយប័ណ្ណស្តង់ដារសម្រាប់បង្រួបបង្រួមរបាយការណ៍ហិរញ្ញវត្ថុ និងផ្ទាំងគ្រប់គ្រង" : "Standard currency for consolidated portfolio reporting and financial dashboard aggregates"}
               </p>
               <div style={{ display: "flex", gap: 10 }}>
                 <button
                   type="button"
                   onClick={() => setBaseCurrency("USD")}
                   style={{
-                    padding: "8px 16px",
+                    padding: "8px 18px",
                     borderRadius: "8px",
                     fontSize: 13,
                     fontWeight: 700,
@@ -528,7 +507,7 @@ export default function Settings() {
                   type="button"
                   onClick={() => setBaseCurrency("KHR")}
                   style={{
-                    padding: "8px 16px",
+                    padding: "8px 18px",
                     borderRadius: "8px",
                     fontSize: 13,
                     fontWeight: 700,
@@ -547,62 +526,66 @@ export default function Settings() {
             {/* Default Calculation Method */}
             <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: 20 }}>
               <h3 style={{ margin: "0 0 4px", fontSize: 16, fontWeight: 700, color: "var(--color-text)" }}>
-                {t("settingsPage.defaultInterest")}
+                {isKm ? "វិធីសាស្ត្រគណនាការប្រាក់លំនាំដើម (Default Amortization Method)" : "Default Amortization Standard"}
               </h3>
               <p style={{ margin: "0 0 10px", fontSize: 12.5, color: "var(--color-text-muted)" }}>
-                Select default amortization calculation for newly initiated credit applications.
+                {isKm ? "វិធីសាស្ត្រគណនាដែលត្រូវបានកំណត់ជាស្វ័យប្រវត្តិពេលបង្កើតកម្ចីថ្មី" : "Preselected repayment schedule method when initiating new loan applications"}
               </p>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, maxWidth: 640 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 12 }}>
                 <div
                   onClick={() => setInterestType("reducing")}
                   style={{
-                    padding: "12px 14px",
-                    borderRadius: "8px",
+                    padding: "14px 16px",
+                    borderRadius: "10px",
                     border: interestType === "reducing" ? "1.5px solid var(--color-accent)" : "1px solid var(--color-border)",
                     background: interestType === "reducing" ? "var(--color-accent-soft)" : "var(--color-surface)",
                     cursor: "pointer",
                     transition: "all 0.15s ease",
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 700, fontSize: 13, color: interestType === "reducing" ? "var(--color-accent)" : "var(--color-text)" }}>
-                    <TrendingUp size={15} color="var(--color-accent)" />
-                    <span>{t("loans.reducing")}</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 700, fontSize: 13.5, color: interestType === "reducing" ? "var(--color-accent)" : "var(--color-text)" }}>
+                    <TrendingUp size={16} />
+                    <span>{isKm ? "ការប្រាក់ថយចុះ (Reducing Balance Method)" : "Reducing Balance Method"}</span>
                   </div>
-                  <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 4, lineHeight: 1.4 }}>
-                    Interest decreases as principal is amortized (Standard banking policy).
+                  <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 4, lineHeight: 1.4 }}>
+                    {isKm
+                      ? "ការប្រាក់ថយចុះតាមសមតុល្យប្រាក់ដើមដែលនៅសល់ (ស្តង់ដារធនាគារកម្ពុជា)"
+                      : "Interest decreases progressively as outstanding principal is amortized (Standard banking policy)"}
                   </div>
                 </div>
 
                 <div
                   onClick={() => setInterestType("flat")}
                   style={{
-                    padding: "12px 14px",
-                    borderRadius: "8px",
+                    padding: "14px 16px",
+                    borderRadius: "10px",
                     border: interestType === "flat" ? "1.5px solid var(--color-accent)" : "1px solid var(--color-border)",
                     background: interestType === "flat" ? "var(--color-accent-soft)" : "var(--color-surface)",
                     cursor: "pointer",
                     transition: "all 0.15s ease",
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 700, fontSize: 13, color: interestType === "flat" ? "var(--color-accent)" : "var(--color-text)" }}>
-                    <Percent size={15} color="var(--color-text-secondary)" />
-                    <span>{t("loans.flat")}</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 700, fontSize: 13.5, color: interestType === "flat" ? "var(--color-accent)" : "var(--color-text)" }}>
+                    <Percent size={16} />
+                    <span>{isKm ? "ការប្រាក់ថេរ (Flat Rate Method)" : "Flat Rate Method"}</span>
                   </div>
-                  <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 4, lineHeight: 1.4 }}>
-                    Fixed interest calculated against original principal throughout duration.
+                  <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 4, lineHeight: 1.4 }}>
+                    {isKm
+                      ? "ការប្រាក់ត្រូវបានគណនាថេរលើប្រាក់ដើមដើមគ្រាពេញមួយរយៈពេលកម្ចី"
+                      : "Fixed interest calculated on initial loan principal throughout duration"}
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Grace Period & Late Fee */}
-            <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: 20, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+            <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: 20, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20 }}>
               <div>
                 <h3 style={{ margin: "0 0 4px", fontSize: 15, fontWeight: 700, color: "var(--color-text)" }}>
-                  {t("settingsPage.gracePeriod")}
+                  {isKm ? "រយៈពេលអនុគ្រោះការសងយឺត (Grace Period Days)" : "Delinquency Grace Period"}
                 </h3>
                 <p style={{ margin: "0 0 10px", fontSize: 12, color: "var(--color-text-muted)" }}>
-                  {t("settingsPage.gracePeriodDesc")}
+                  {isKm ? "ចំនួនថ្ងៃអនុគ្រោះមុនពេលប្រព័ន្ធចាប់ផ្តើមគិតប្រាក់ពិន័យ" : "Grace days before the system starts charging late penalty fees"}
                 </p>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <input
@@ -611,26 +594,19 @@ export default function Settings() {
                     max="60"
                     value={gracePeriod}
                     onChange={(e) => setGracePeriod(e.target.value)}
-                    style={{
-                      fontSize: 15,
-                      fontWeight: 700,
-                      fontFamily: "var(--font-sans)",
-                      fontVariantNumeric: "tabular-nums",
-                      padding: "8px 12px",
-                      borderRadius: "8px",
-                      width: 100,
-                    }}
+                    className="input"
+                    style={{ width: 100, fontSize: 15, fontWeight: 700 }}
                   />
-                  <span style={{ fontSize: 13, color: "var(--color-text-secondary)" }}>days</span>
+                  <span style={{ fontSize: 13, color: "var(--color-text-muted)" }}>{isKm ? "ថ្ងៃ (Days)" : "days"}</span>
                 </div>
               </div>
 
               <div>
                 <h3 style={{ margin: "0 0 4px", fontSize: 15, fontWeight: 700, color: "var(--color-text)" }}>
-                  {t("settingsPage.lateFee")}
+                  {isKm ? "អត្រាប្រាក់ពិន័យយឺតយ៉ាវ (Late Penalty Fee)" : "Monthly Late Penalty Fee"}
                 </h3>
                 <p style={{ margin: "0 0 10px", fontSize: 12, color: "var(--color-text-muted)" }}>
-                  {t("settingsPage.lateFeeDesc")}
+                  {isKm ? "ភាគរយពិន័យប្រចាំខែលើចំនួនទឹកប្រាក់ដែលយឺត" : "Monthly penalty surcharge on overdue installment balance"}
                 </p>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <input
@@ -640,17 +616,10 @@ export default function Settings() {
                     max="50"
                     value={lateFee}
                     onChange={(e) => setLateFee(e.target.value)}
-                    style={{
-                      fontSize: 15,
-                      fontWeight: 700,
-                      fontFamily: "var(--font-sans)",
-                      fontVariantNumeric: "tabular-nums",
-                      padding: "8px 12px",
-                      borderRadius: "8px",
-                      width: 100,
-                    }}
+                    className="input"
+                    style={{ width: 100, fontSize: 15, fontWeight: 700 }}
                   />
-                  <span style={{ fontSize: 13, color: "var(--color-text-secondary)" }}>% / month</span>
+                  <span style={{ fontSize: 13, color: "var(--color-text-muted)" }}>{isKm ? "% ក្នុងមួយខែ" : "% / month"}</span>
                 </div>
               </div>
             </div>
@@ -662,80 +631,77 @@ export default function Settings() {
       {activeTab === "system" && (
         <div style={{ display: "grid", gap: 16 }}>
           <div
+            className="card"
             style={{
-              background: "var(--color-surface)",
-              borderRadius: "14px",
-              border: "1px solid var(--color-border)",
-              boxShadow: "var(--shadow-sm)",
               padding: 24,
             }}
           >
             <h3 style={{ margin: "0 0 14px", fontSize: 16, fontWeight: 700, color: "var(--color-text)" }}>
-              {t("settingsPage.systemInfo")}
+              {isKm ? "ព័ត៌មានលម្អិតម៉ាស៊ីនបម្រើ & សុវត្ថិភាពទិន្នន័យ (Core Infrastructure)" : "Core Infrastructure & Security Audit"}
             </h3>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 14 }}>
               <div
                 style={{
-                  padding: "14px 16px",
-                  borderRadius: "8px",
+                  padding: "16px 18px",
+                  borderRadius: "10px",
                   background: "var(--color-surface-sunken)",
                   border: "1px solid var(--color-border)",
                 }}
               >
                 <div style={{ fontSize: 12, color: "var(--color-text-muted)", fontWeight: 600 }}>
-                  {t("settingsPage.apiVersion")}
+                  {isKm ? "កំណែប្រព័ន្ធស្នូល (API Engine)" : "Core API Engine"}
                 </div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: "var(--color-text)", marginTop: 4 }}>
-                  Smart Loan Core v2.4.0 (FastAPI 0.111 / Python 3.12)
+                <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--color-text)", marginTop: 4 }}>
+                  Smart Loan Core v2.4.0 (FastAPI / Python 3.12)
                 </div>
               </div>
 
               <div
                 style={{
-                  padding: "14px 16px",
-                  borderRadius: "8px",
+                  padding: "16px 18px",
+                  borderRadius: "10px",
                   background: "var(--color-surface-sunken)",
                   border: "1px solid var(--color-border)",
                 }}
               >
                 <div style={{ fontSize: 12, color: "var(--color-text-muted)", fontWeight: 600 }}>
-                  {t("settingsPage.dbStatus")}
+                  {isKm ? "មូលដ្ឋានទិន្នន័យ (PostgreSQL Cluster)" : "Database Cluster"}
                 </div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: "var(--color-text)", marginTop: 4 }}>
+                <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--color-text)", marginTop: 4 }}>
                   PostgreSQL 16 (Connection Pool Active)
                 </div>
               </div>
 
               <div
                 style={{
-                  padding: "14px 16px",
-                  borderRadius: "8px",
+                  padding: "16px 18px",
+                  borderRadius: "10px",
                   background: "var(--color-surface-sunken)",
                   border: "1px solid var(--color-border)",
                 }}
               >
                 <div style={{ fontSize: 12, color: "var(--color-text-muted)", fontWeight: 600 }}>
-                  {t("settingsPage.environment")}
+                  {isKm ? "បរិស្ថានដំណើរការ (Environment)" : "Operating Environment"}
                 </div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: "var(--color-accent)", marginTop: 4 }}>
-                  Production Ready / Docker Swarm
+                <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--color-accent)", marginTop: 4 }}>
+                  Production Ready / Docker Containerized
                 </div>
               </div>
 
               <div
                 style={{
-                  padding: "14px 16px",
-                  borderRadius: "8px",
+                  padding: "16px 18px",
+                  borderRadius: "10px",
                   background: "var(--color-surface-sunken)",
                   border: "1px solid var(--color-border)",
                 }}
               >
                 <div style={{ fontSize: 12, color: "var(--color-text-muted)", fontWeight: 600 }}>
-                  Current Active Branding
+                  {isKm ? "ស្តង់ដាររក្សាទុកទិន្នន័យសវនកម្ម" : "Data Retention Policy"}
                 </div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: "var(--color-text)", marginTop: 4 }}>
-                  {websiteName} ({companyName})
+                <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--color-text)", marginTop: 4 }}>
+                  {isKm ? "១០ ឆ្នាំ (អនុលោមភាពបទប្បញ្ញត្តិ NBC)" : "10 Years (NBC Prudential Standard)"}
                 </div>
               </div>
             </div>

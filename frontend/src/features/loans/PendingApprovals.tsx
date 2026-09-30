@@ -16,7 +16,8 @@ import { decideLoan, listPendingApprovals } from "../../api/loans";
 import type { Loan } from "../../api/types";
 import { useToast } from "../../context/ToastContext";
 import { useConfirm } from "../../context/ConfirmContext";
-import { formatCurrency, formatPercent, formatDate } from "../../utils/format";
+import { formatCurrency, formatPercent, formatDate, convertCurrencyAmount } from "../../utils/format";
+import { useBranding } from "../../context/BrandingContext";
 import Pagination from "../../components/ui/Pagination";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 
@@ -66,9 +67,14 @@ export default function PendingApprovals() {
     load(1);
   }, []);
 
+  const { baseCurrency, usdToKhrRate } = useBranding();
+
   const totalCapitalPending = useMemo(() => {
-    return loans.reduce((sum, l) => sum + (Number(l.principal_amount) || 0), 0);
-  }, [loans]);
+    return loans.reduce((sum, l) => {
+      const converted = convertCurrencyAmount(l.principal_amount, l.principal_currency, baseCurrency, usdToKhrRate);
+      return sum + converted;
+    }, 0);
+  }, [loans, baseCurrency, usdToKhrRate]);
 
   async function handleDecision(loanId: string, approve: boolean, clientName?: string) {
     const comment = commentsById[loanId];
@@ -164,7 +170,7 @@ export default function PendingApprovals() {
             <span className="stats-summary-label">Total Requested Capital</span>
             <span className="stats-summary-num">
               {loans.length > 0
-                ? formatCurrency(totalCapitalPending, loans[0]?.principal_currency || "USD")
+                ? formatCurrency(totalCapitalPending, baseCurrency)
                 : "--"}
             </span>
           </div>
@@ -229,6 +235,11 @@ export default function PendingApprovals() {
                       style={{ fontSize: 24, fontWeight: 800, color: "var(--color-text)", marginTop: 2 }}
                     >
                       {formatCurrency(loan.principal_amount, loan.principal_currency)}
+                      {loan.principal_currency !== baseCurrency && (
+                        <div style={{ fontSize: 12, color: "var(--color-text-muted)", fontWeight: 500 }}>
+                          ≈ {formatCurrency(convertCurrencyAmount(loan.principal_amount, loan.principal_currency, baseCurrency, usdToKhrRate), baseCurrency)}
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -326,7 +337,12 @@ export default function PendingApprovals() {
                       <Link to={`/loans/${l.id}`}>{l.client_name || "Borrower"}</Link>
                     </td>
                     <td className="num" style={{ fontWeight: 700 }}>
-                      {formatCurrency(l.principal_amount, l.principal_currency)}
+                      <div>{formatCurrency(l.principal_amount, l.principal_currency)}</div>
+                      {l.principal_currency !== baseCurrency && (
+                        <div style={{ fontSize: 11, color: "var(--color-text-muted)", fontWeight: 500 }}>
+                          ≈ {formatCurrency(convertCurrencyAmount(l.principal_amount, l.principal_currency, baseCurrency, usdToKhrRate), baseCurrency)}
+                        </div>
+                      )}
                     </td>
                     <td className="num">{formatPercent(l.interest_rate_percent)} / mo</td>
                     <td className="num">{l.term_months} mo</td>
