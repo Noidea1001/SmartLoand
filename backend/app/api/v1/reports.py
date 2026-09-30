@@ -2691,5 +2691,631 @@ def update_lead_status(
     return {"ok": True, "lead": found}
 
 
+# =========================================================================
+# 21. Bakong KHQR Real-Time Payment Webhook & Auto-Reconciliation Engine
+# =========================================================================
+
+BAKONG_FILE = os.path.join(os.path.dirname(__file__), "..", "..", "data", "bakong_transactions.json")
 
 
+def _load_bakong_txns() -> list[dict]:
+    try:
+        if os.path.exists(BAKONG_FILE):
+            with open(BAKONG_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                if data:
+                    return data
+    except Exception:
+        pass
+
+    today_str = str(date.today())
+    seed = [
+        {
+            "id": "BK-20260930-9981",
+            "hash": "b2f8a1c900e34199bd785501ae44bc77109a",
+            "md5": "e4d909c290d0fb1ca068ffaddf22cbd0",
+            "payer_name": "CHEA SOPHAL (ជា សុផល)",
+            "payer_bank": "ABA Bank",
+            "payer_account": "001 234 567",
+            "receiver_account": "smartloan@bk",
+            "amount": 285.00,
+            "currency": "USD",
+            "bill_number": "LN-2026-0012",
+            "status": "settled",
+            "matched_loan_id": "0012",
+            "reconciled_at": f"{today_str} 08:42:15",
+            "created_at": f"{today_str} 08:42:10",
+        },
+        {
+            "id": "BK-20260930-9982",
+            "hash": "c7104b2a890e445da9811c0024f9aa113b28",
+            "md5": "7b889502ab35c98aef001188339944a1",
+            "payer_name": "VANN RATHA (វ៉ាន់ រដ្ឋា)",
+            "payer_bank": "ACLEDA Mobile",
+            "payer_account": "1002 9984 11",
+            "receiver_account": "smartloan@bk",
+            "amount": 620000.00,
+            "currency": "KHR",
+            "bill_number": "LN-2026-0045",
+            "status": "settled",
+            "matched_loan_id": "0045",
+            "reconciled_at": f"{today_str} 09:15:30",
+            "created_at": f"{today_str} 09:15:22",
+        },
+        {
+            "id": "BK-20260930-9983",
+            "hash": "d8209aa4411fbce28400192a55cb4901ee19",
+            "md5": "099a88bbcc77665544332211eeddff88",
+            "payer_name": "KONG SARITH (គង់ សារិទ្ធ)",
+            "payer_bank": "Wing Bank",
+            "payer_account": "098 776 554",
+            "receiver_account": "smartloan@bk",
+            "amount": 150.00,
+            "currency": "USD",
+            "bill_number": "LN-2026-0089",
+            "status": "settled",
+            "matched_loan_id": "0089",
+            "reconciled_at": f"{today_str} 10:02:44",
+            "created_at": f"{today_str} 10:02:35",
+        },
+        {
+            "id": "BK-20260930-9984",
+            "hash": "f901174cb09e44ffaa8801994b22c7102a45",
+            "md5": "11223344556677889900aabbccddeeff",
+            "payer_name": "MEAS SOTHY (មាស សុធី)",
+            "payer_bank": "Sathapana Bank",
+            "payer_account": "029 441 883",
+            "receiver_account": "smartloan@bk",
+            "amount": 410000.00,
+            "currency": "KHR",
+            "bill_number": "FLOAT-09923",
+            "status": "unmatched_float",
+            "matched_loan_id": None,
+            "reconciled_at": None,
+            "created_at": f"{today_str} 11:30:19",
+        },
+        {
+            "id": "BK-20260930-9985",
+            "hash": "a1890f33d45e00bb9922c4518920bc91ea01",
+            "md5": "55667788990011223344aabbccddeeff",
+            "payer_name": "PHAN SOPHEAK (ផាន់ សុភ័ក្ត្រ)",
+            "payer_bank": "Canadia Bank",
+            "payer_account": "008 192 481",
+            "receiver_account": "smartloan@bk",
+            "amount": 500.00,
+            "currency": "USD",
+            "bill_number": "LN-2026-0104",
+            "status": "pending_match",
+            "matched_loan_id": None,
+            "reconciled_at": None,
+            "created_at": f"{today_str} 12:10:00",
+        },
+    ]
+    _save_bakong_txns(seed)
+    return seed
+
+
+def _save_bakong_txns(txns: list[dict]):
+    try:
+        os.makedirs(os.path.dirname(BAKONG_FILE), exist_ok=True)
+        with open(BAKONG_FILE, "w", encoding="utf-8") as f:
+            json.dump(txns, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"Error saving Bakong transactions: {e}")
+
+
+@router.get("/bakong/transactions")
+def get_bakong_transactions(
+    current_user: CurrentUser = Depends(require_permission("loans.view")),
+):
+    """Retrieves all incoming Bakong KHQR transactions and auto-reconciliation statistics."""
+    txns = _load_bakong_txns()
+    settled_usd = sum(t["amount"] for t in txns if t["status"] == "settled" and t["currency"] == "USD")
+    settled_khr = sum(t["amount"] for t in txns if t["status"] == "settled" and t["currency"] == "KHR")
+    settled_count = sum(1 for t in txns if t["status"] == "settled")
+    pending_count = sum(1 for t in txns if t["status"] == "pending_match")
+    unmatched_count = sum(1 for t in txns if t["status"] == "unmatched_float")
+    total_count = len(txns)
+    match_rate = round((settled_count / total_count * 100.0), 1) if total_count > 0 else 100.0
+
+    return {
+        "summary": {
+            "total_transactions": total_count,
+            "settled_count": settled_count,
+            "pending_count": pending_count,
+            "unmatched_count": unmatched_count,
+            "auto_match_rate_pct": match_rate,
+            "settled_usd": round(settled_usd, 2),
+            "settled_khr": round(settled_khr, 2),
+        },
+        "transactions": sorted(txns, key=lambda x: x["created_at"], reverse=True),
+    }
+
+
+@router.post("/bakong/webhook")
+def process_bakong_webhook(
+    payload: dict = Body(...),
+    db: Session = Depends(get_db),
+):
+    """Receives real-time Bakong webhook notification and reconciles installment payoff."""
+    txns = _load_bakong_txns()
+    bill_no = str(payload.get("bill_number") or "").strip()
+    amt = float(payload.get("amount") or 0.0)
+    curr = str(payload.get("currency") or "USD").upper()
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # Match by bill reference or loan id
+    matched_loan = None
+    if bill_no:
+        matched_loan = db.query(Loan).filter(
+            Loan.deleted_at.is_(None),
+            func.cast(Loan.id, String).ilike(f"%{bill_no.replace('LN-', '')}%"),
+        ).first()
+
+    txn_id = f"BK-{date.today().strftime('%Y%m%d')}-{len(txns) + 1:04d}"
+    status = "settled" if matched_loan else ("unmatched_float" if not bill_no else "pending_match")
+
+    new_txn = {
+        "id": txn_id,
+        "hash": payload.get("hash") or f"sim_{uuid.uuid4().hex[:32]}",
+        "md5": payload.get("md5") or uuid.uuid4().hex[:32],
+        "payer_name": payload.get("payer_name") or "BAKONG CUSTOMER",
+        "payer_bank": payload.get("payer_bank") or "Bakong Member Bank",
+        "payer_account": payload.get("payer_account") or "N/A",
+        "receiver_account": payload.get("receiver_account") or "smartloan@bk",
+        "amount": amt,
+        "currency": curr,
+        "bill_number": bill_no or f"FLOAT-{len(txns)+1:05d}",
+        "status": status,
+        "matched_loan_id": str(matched_loan.id)[:8] if matched_loan else None,
+        "reconciled_at": now_str if status == "settled" else None,
+        "created_at": now_str,
+    }
+
+    txns.insert(0, new_txn)
+    _save_bakong_txns(txns)
+
+    return {
+        "ok": True,
+        "status": status,
+        "transaction_id": txn_id,
+        "matched": bool(matched_loan),
+        "message": "Bakong transaction processed and reconciled." if matched_loan else "Transaction received into float for verification.",
+    }
+
+
+@router.post("/bakong/reconcile-manual")
+def manual_reconcile_bakong(
+    payload: dict = Body(...),
+    current_user: CurrentUser = Depends(require_permission("loans.view")),
+):
+    """Manually links an unmatched or pending float transaction to a specific loan."""
+    txns = _load_bakong_txns()
+    txn_id = payload.get("transaction_id")
+    target_loan_id = payload.get("target_loan_id")
+    if not txn_id or not target_loan_id:
+        raise HTTPException(status_code=400, detail="Transaction ID and Target Loan ID are required.")
+
+    found = None
+    for t in txns:
+        if t["id"] == txn_id:
+            found = t
+            break
+
+    if not found:
+        raise HTTPException(status_code=404, detail="Bakong transaction not found.")
+
+    found["status"] = "settled"
+    found["matched_loan_id"] = target_loan_id
+    found["reconciled_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    _save_bakong_txns(txns)
+
+    return {"ok": True, "transaction": found}
+
+
+# =========================================================================
+# 22. Automated Credit Underwriting & 5Cs Scoring Matrix Engine
+# =========================================================================
+
+SCORING_FILE = os.path.join(os.path.dirname(__file__), "..", "..", "data", "credit_evaluations.json")
+
+
+def _load_scoring_evals() -> list[dict]:
+    try:
+        if os.path.exists(SCORING_FILE):
+            with open(SCORING_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                if data:
+                    return data
+    except Exception:
+        pass
+
+    today_str = str(date.today())
+    seed = [
+        {
+            "id": "UWD-2026-081",
+            "borrower_name": "ជា វុទ្ធី (Chea Vuthea)",
+            "national_id": "010884920",
+            "phone": "012 884 920",
+            "requested_amount": 5000.0,
+            "currency": "USD",
+            "monthly_income": 1200.0,
+            "monthly_expenses": 450.0,
+            "monthly_debt_repayment": 180.0,
+            "proposed_monthly_installment": 260.0,
+            "collateral_value": 15000.0,
+            "collateral_type": "ប្លង់រឹងលំនៅឋាន (Hard Title Deed)",
+            "cbc_status": "clean",
+            "scores": {
+                "character": 92,
+                "capacity": 88,
+                "capital": 80,
+                "collateral": 95,
+                "conditions": 85,
+                "overall_score": 788,
+            },
+            "metrics": {
+                "dscr": 1.74,
+                "dti_pct": 36.6,
+                "ltv_pct": 33.3,
+            },
+            "risk_tier": "A+",
+            "recommendation": "AUTO_APPROVE",
+            "max_approved_limit": 8500.0,
+            "evaluated_by": "ប្រព័ន្ធវាយតម្លៃស្វ័យប្រវត្តិ (AI Underwriter)",
+            "created_at": f"{today_str} 09:12",
+        },
+        {
+            "id": "UWD-2026-082",
+            "borrower_name": "ស៊ុន ចាន់ថុល (Sun Chanthol)",
+            "national_id": "020993184",
+            "phone": "097 334 1122",
+            "requested_amount": 12000000.0,
+            "currency": "KHR",
+            "monthly_income": 2400000.0,
+            "monthly_expenses": 1300000.0,
+            "monthly_debt_repayment": 300000.0,
+            "proposed_monthly_installment": 620000.0,
+            "collateral_value": 25000000.0,
+            "collateral_type": "ប្លង់ទន់ភូមិឋាន (Soft Title Deed)",
+            "cbc_status": "clean",
+            "scores": {
+                "character": 84,
+                "capacity": 72,
+                "capital": 68,
+                "collateral": 75,
+                "conditions": 70,
+                "overall_score": 674,
+            },
+            "metrics": {
+                "dscr": 1.20,
+                "dti_pct": 38.3,
+                "ltv_pct": 48.0,
+            },
+            "risk_tier": "B",
+            "recommendation": "COMMITTEE_REVIEW",
+            "max_approved_limit": 10000000.0,
+            "evaluated_by": "ប្រព័ន្ធវាយតម្លៃស្វ័យប្រវត្តិ (AI Underwriter)",
+            "created_at": f"{today_str} 10:45",
+        },
+    ]
+    _save_scoring_evals(seed)
+    return seed
+
+
+def _save_scoring_evals(evals: list[dict]):
+    try:
+        os.makedirs(os.path.dirname(SCORING_FILE), exist_ok=True)
+        with open(SCORING_FILE, "w", encoding="utf-8") as f:
+            json.dump(evals, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"Error saving scoring evaluations: {e}")
+
+
+@router.get("/credit-scoring/evaluations")
+def get_credit_scoring_evaluations(
+    current_user: CurrentUser = Depends(require_permission("loans.view")),
+):
+    """Retrieves all past automated 5Cs underwriting evaluations and scorecards."""
+    evals = _load_scoring_evals()
+    return {
+        "summary": {
+            "total_evaluations": len(evals),
+            "auto_approved_count": sum(1 for e in evals if e["recommendation"] == "AUTO_APPROVE"),
+            "committee_review_count": sum(1 for e in evals if e["recommendation"] == "COMMITTEE_REVIEW"),
+            "declined_count": sum(1 for e in evals if e["recommendation"] == "DECLINE"),
+            "average_score": round(sum(e["scores"]["overall_score"] for e in evals) / len(evals), 0) if evals else 700,
+        },
+        "evaluations": sorted(evals, key=lambda x: x["created_at"], reverse=True),
+    }
+
+
+@router.post("/credit-scoring/evaluate")
+def evaluate_credit_underwriting(
+    payload: dict = Body(...),
+    current_user: CurrentUser = Depends(require_permission("loans.view")),
+):
+    """Calculates comprehensive 5Cs credit score, DSCR, LTV, and issues risk underwriting recommendation."""
+    b_name = payload.get("borrower_name", "Applicant")
+    nat_id = payload.get("national_id", "N/A")
+    phone = payload.get("phone", "N/A")
+    req_amt = float(payload.get("requested_amount", 1000.0))
+    curr = payload.get("currency", "USD")
+    income = float(payload.get("monthly_income", 500.0))
+    expenses = float(payload.get("monthly_expenses", 200.0))
+    existing_debt = float(payload.get("monthly_debt_repayment", 0.0))
+    proposed_inst = float(payload.get("proposed_monthly_installment", 100.0))
+    col_val = float(payload.get("collateral_value", 2000.0))
+    col_type = payload.get("collateral_type", "ប្លង់រឹង")
+    cbc = payload.get("cbc_status", "clean")
+
+    # 1. Capacity: DSCR = Net Operating Income / (Existing Debt + Proposed Debt)
+    net_income = max(1.0, income - expenses)
+    total_repayments = max(1.0, existing_debt + proposed_inst)
+    dscr = round(net_income / total_repayments, 2)
+    dti_pct = round((total_repayments / max(1.0, income)) * 100.0, 1)
+
+    capacity_pts = 95 if dscr >= 1.5 else (85 if dscr >= 1.3 else (70 if dscr >= 1.1 else (50 if dscr >= 1.0 else 30)))
+
+    # 2. Collateral: LTV = Requested Loan / Collateral Value
+    ltv_pct = round((req_amt / max(1.0, col_val)) * 100.0, 1) if col_val > 0 else 100.0
+    col_pts = 95 if ltv_pct <= 40 else (85 if ltv_pct <= 60 else (70 if ltv_pct <= 75 else 45))
+    if "ប្លង់រឹង" in col_type or "Hard" in col_type:
+        col_pts = min(100, col_pts + 5)
+
+    # 3. Character (CBC)
+    char_pts = 95 if cbc == "clean" else (70 if cbc == "minor_overdue" else 40)
+
+    # 4. Capital
+    capital_pts = 85 if income > req_amt * 0.3 else 70
+
+    # 5. Conditions
+    cond_pts = 80
+
+    # Weighted FICO-style score (300 to 850)
+    weighted_100 = (char_pts * 0.25) + (capacity_pts * 0.30) + (capital_pts * 0.15) + (col_pts * 0.20) + (cond_pts * 0.10)
+    overall_score = int(300 + (weighted_100 / 100.0) * 550)
+
+    # Risk Tier & Recommendation
+    if overall_score >= 750 and dscr >= 1.3 and ltv_pct <= 70:
+        tier = "A+"
+        recommendation = "AUTO_APPROVE"
+        max_limit = round(req_amt * 1.25, 2)
+    elif overall_score >= 680 and dscr >= 1.15 and ltv_pct <= 75:
+        tier = "A"
+        recommendation = "AUTO_APPROVE"
+        max_limit = req_amt
+    elif overall_score >= 600 and dscr >= 1.05:
+        tier = "B"
+        recommendation = "COMMITTEE_REVIEW"
+        max_limit = round(req_amt * 0.85, 2)
+    elif overall_score >= 520:
+        tier = "C"
+        recommendation = "COMMITTEE_REVIEW"
+        max_limit = round(req_amt * 0.65, 2)
+    else:
+        tier = "D"
+        recommendation = "DECLINE"
+        max_limit = 0.0
+
+    eval_entry = {
+        "id": f"UWD-{date.today().strftime('%Y')}-{uuid.uuid4().hex[:4].upper()}",
+        "borrower_name": b_name,
+        "national_id": nat_id,
+        "phone": phone,
+        "requested_amount": req_amt,
+        "currency": curr,
+        "monthly_income": income,
+        "monthly_expenses": expenses,
+        "monthly_debt_repayment": existing_debt,
+        "proposed_monthly_installment": proposed_inst,
+        "collateral_value": col_val,
+        "collateral_type": col_type,
+        "cbc_status": cbc,
+        "scores": {
+            "character": char_pts,
+            "capacity": capacity_pts,
+            "capital": capital_pts,
+            "collateral": col_pts,
+            "conditions": cond_pts,
+            "overall_score": overall_score,
+        },
+        "metrics": {
+            "dscr": dscr,
+            "dti_pct": dti_pct,
+            "ltv_pct": ltv_pct,
+        },
+        "risk_tier": tier,
+        "recommendation": recommendation,
+        "max_approved_limit": max_limit,
+        "evaluated_by": current_user.name if hasattr(current_user, "name") and current_user.name else "System Underwriter",
+        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+    }
+
+    evals = _load_scoring_evals()
+    evals.insert(0, eval_entry)
+    _save_scoring_evals(evals)
+
+    return {"ok": True, "evaluation": eval_entry}
+
+
+# =========================================================================
+# 23. General Ledger (GL) & Double-Entry Accounting Module
+# =========================================================================
+
+ACCOUNTING_FILE = os.path.join(os.path.dirname(__file__), "..", "..", "data", "general_ledger.json")
+
+
+def _load_accounting_data() -> dict:
+    try:
+        if os.path.exists(ACCOUNTING_FILE):
+            with open(ACCOUNTING_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                if data:
+                    return data
+    except Exception:
+        pass
+
+    today_str = str(date.today())
+    seed = {
+        "chart_of_accounts": [
+            {"code": "1110", "name_km": "សាច់ប្រាក់ក្នុងឃ្លាំង & បេឡា", "name_en": "Cash on Hand & Vault", "category": "asset", "debit_usd": 125400.0, "credit_usd": 0.0, "debit_khr": 52000000.0, "credit_khr": 0.0},
+            {"code": "1120", "name_km": "ប្រាក់បញ្ញើនៅធនាគារជាតិ NBC", "name_en": "Balances with NBC (Reserve)", "category": "asset", "debit_usd": 250000.0, "credit_usd": 0.0, "debit_khr": 0.0, "credit_khr": 0.0},
+            {"code": "1130", "name_km": "ប្រាក់បញ្ញើនៅធនាគារពាណិជ្ជ", "name_en": "Due from Banks (ABA/Acleda)", "category": "asset", "debit_usd": 85000.0, "credit_usd": 0.0, "debit_khr": 35000000.0, "credit_khr": 0.0},
+            {"code": "1210", "name_km": "ផលប័ត្រឥណទានសរុប (កម្ចីដើម)", "name_en": "Gross Loan Portfolio", "category": "asset", "debit_usd": 680000.0, "credit_usd": 0.0, "debit_khr": 480000000.0, "credit_khr": 0.0},
+            {"code": "1290", "name_km": "សំវិធានធនឥណទានអាក់ខាន", "name_en": "Allowance for Loan Impairment", "category": "contra_asset", "debit_usd": 0.0, "credit_usd": 18500.0, "debit_khr": 0.0, "credit_khr": 14200000.0},
+            {"code": "2110", "name_km": "ប្រាក់បញ្ញើសន្សំអតិថិជន", "name_en": "Customer Deposits & Savings", "category": "liability", "debit_usd": 0.0, "credit_usd": 320000.0, "debit_khr": 0.0, "credit_khr": 120000000.0},
+            {"code": "2210", "name_km": "កម្ចីពីស្ថាប័នដៃគូអភិវឌ្ឍន៍", "name_en": "Borrowings from Lenders", "category": "liability", "debit_usd": 0.0, "credit_usd": 400000.0, "debit_khr": 0.0, "credit_khr": 200000000.0},
+            {"code": "3110", "name_km": "ដើមទុនចុះបញ្ជីរបស់ស្ថាប័ន", "name_en": "Paid-up Share Capital", "category": "equity", "debit_usd": 0.0, "credit_usd": 350000.0, "debit_khr": 0.0, "credit_khr": 150000000.0},
+            {"code": "3210", "name_km": "ប្រាក់ចំណេញរក្សាទុក", "name_en": "Retained Earnings", "category": "equity", "debit_usd": 0.0, "credit_usd": 31900.0, "debit_khr": 0.0, "credit_khr": 42800000.0},
+            {"code": "4110", "name_km": "ចំណូលការប្រាក់ពីកម្ចី", "name_en": "Interest Income from Loans", "category": "revenue", "debit_usd": 0.0, "credit_usd": 45000.0, "debit_khr": 0.0, "credit_khr": 48000000.0},
+            {"code": "4120", "name_km": "ចំណូលកម្រៃសេវារដ្ឋបាលកម្ចី", "name_en": "Loan Processing & Admin Fees", "category": "revenue", "debit_usd": 0.0, "credit_usd": 6500.0, "debit_khr": 0.0, "credit_khr": 7000000.0},
+            {"code": "4130", "name_km": "ចំណូលប្រាក់ពិន័យយឺតយ៉ាវ", "name_en": "Late Payment Penalty Income", "category": "revenue", "debit_usd": 0.0, "credit_usd": 2200.0, "debit_khr": 0.0, "credit_khr": 2500000.0},
+            {"code": "5110", "name_km": "ចំណាយសំវិធានធនឥណទាន (NBC)", "name_en": "Loan Loss Provision Expense", "category": "expense", "debit_usd": 18500.0, "credit_usd": 0.0, "debit_khr": 14200000.0, "credit_khr": 0.0},
+            {"code": "5210", "name_km": "ចំណាយប្រាក់បៀវត្ស & បុគ្គលិក", "name_en": "Staff Salaries & Benefits", "category": "expense", "debit_usd": 28000.0, "credit_usd": 0.0, "debit_khr": 28000000.0, "credit_khr": 0.0},
+            {"code": "5310", "name_km": "ចំណាយប្រតិបត្តិការទូទៅ & ការិយាល័យ", "name_en": "General Office & Admin Expenses", "category": "expense", "debit_usd": 7200.0, "credit_usd": 0.0, "debit_khr": 8300000.0, "credit_khr": 0.0},
+        ],
+        "journal_entries": [
+            {
+                "voucher_no": "JV-2026-0091",
+                "date": today_str,
+                "description_km": "ការបើកផ្តល់កម្ចីថ្មីជូនអតិថិជន (Disbursement #LN-0012)",
+                "description_en": "Loan Disbursement to Client #LN-0012",
+                "branch": "Head Office (ភ្នំពេញ)",
+                "currency": "USD",
+                "total_amount": 5000.0,
+                "lines": [
+                    {"account_code": "1210", "account_name": "Gross Loan Portfolio", "debit": 5000.0, "credit": 0.0},
+                    {"account_code": "1110", "account_name": "Cash on Hand & Vault", "debit": 0.0, "credit": 5000.0},
+                ],
+            },
+            {
+                "voucher_no": "JV-2026-0092",
+                "date": today_str,
+                "description_km": "ការទទួលប្រាក់សងកម្ចីប្រចាំខែ (Principal + Interest #LN-0045)",
+                "description_en": "Loan Repayment Received #LN-0045",
+                "branch": "Battambang Branch",
+                "currency": "KHR",
+                "total_amount": 620000.0,
+                "lines": [
+                    {"account_code": "1110", "account_name": "Cash on Hand & Vault", "debit": 620000.0, "credit": 0.0},
+                    {"account_code": "1210", "account_name": "Gross Loan Portfolio", "debit": 0.0, "credit": 500000.0},
+                    {"account_code": "4110", "account_name": "Interest Income from Loans", "debit": 0.0, "credit": 120000.0},
+                ],
+            },
+            {
+                "voucher_no": "JV-2026-0093",
+                "date": today_str,
+                "description_km": "ការកត់ត្រាសំវិធានធនឥណទានតាមប្រកាស NBC (EOD Accrual)",
+                "description_en": "NBC Loan Loss Provision Accrual",
+                "branch": "Head Office",
+                "currency": "USD",
+                "total_amount": 1250.0,
+                "lines": [
+                    {"account_code": "5110", "account_name": "Loan Loss Provision Expense", "debit": 1250.0, "credit": 0.0},
+                    {"account_code": "1290", "account_name": "Allowance for Loan Impairment", "debit": 0.0, "credit": 1250.0},
+                ],
+            },
+        ],
+    }
+    _save_accounting_data(seed)
+    return seed
+
+
+def _save_accounting_data(data: dict):
+    try:
+        os.makedirs(os.path.dirname(ACCOUNTING_FILE), exist_ok=True)
+        with open(ACCOUNTING_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"Error saving accounting data: {e}")
+
+
+@router.get("/accounting/chart-of-accounts")
+def get_chart_of_accounts(
+    current_user: CurrentUser = Depends(require_permission("loans.view")),
+):
+    """Retrieves standard Microfinance/Banking Chart of Accounts with balances."""
+    data = _load_accounting_data()
+    return {"chart_of_accounts": data.get("chart_of_accounts", [])}
+
+
+@router.get("/accounting/journal-entries")
+def get_journal_entries(
+    current_user: CurrentUser = Depends(require_permission("loans.view")),
+):
+    """Retrieves all double-entry general ledger journal vouchers."""
+    data = _load_accounting_data()
+    return {"journal_entries": data.get("journal_entries", [])}
+
+
+@router.get("/accounting/trial-balance")
+def get_trial_balance(
+    current_user: CurrentUser = Depends(require_permission("loans.view")),
+):
+    """Calculates real-time Trial Balance verifying Debit == Credit equilibrium."""
+    data = _load_accounting_data()
+    coa = data.get("chart_of_accounts", [])
+
+    total_debit_usd = sum(a.get("debit_usd", 0.0) for a in coa)
+    total_credit_usd = sum(a.get("credit_usd", 0.0) for a in coa)
+    total_debit_khr = sum(a.get("debit_khr", 0.0) for a in coa)
+    total_credit_khr = sum(a.get("credit_khr", 0.0) for a in coa)
+
+    return {
+        "as_of_date": str(date.today()),
+        "usd": {
+            "total_debit": round(total_debit_usd, 2),
+            "total_credit": round(total_credit_usd, 2),
+            "is_balanced": abs(total_debit_usd - total_credit_usd) < 0.01,
+            "variance": round(abs(total_debit_usd - total_credit_usd), 2),
+        },
+        "khr": {
+            "total_debit": round(total_debit_khr, 2),
+            "total_credit": round(total_credit_khr, 2),
+            "is_balanced": abs(total_debit_khr - total_credit_khr) < 1.0,
+            "variance": round(abs(total_debit_khr - total_credit_khr), 2),
+        },
+        "accounts": coa,
+    }
+
+
+@router.post("/accounting/journal-entries")
+def post_journal_entry(
+    payload: dict = Body(...),
+    current_user: CurrentUser = Depends(require_permission("loans.view")),
+):
+    """Posts a new balanced double-entry journal voucher."""
+    desc_km = payload.get("description_km", "ប័ណ្ណទូទាត់ទូទៅ")
+    desc_en = payload.get("description_en", "Manual Journal Voucher")
+    branch = payload.get("branch", "Head Office")
+    curr = payload.get("currency", "USD")
+    lines = payload.get("lines", [])
+
+    if not lines or len(lines) < 2:
+        raise HTTPException(status_code=400, detail="A journal voucher requires at least one Debit and one Credit line.")
+
+    sum_debit = sum(float(l.get("debit", 0.0)) for l in lines)
+    sum_credit = sum(float(l.get("credit", 0.0)) for l in lines)
+
+    if abs(sum_debit - sum_credit) > 0.01:
+        raise HTTPException(status_code=400, detail=f"Voucher is out of balance! Debit ({sum_debit}) != Credit ({sum_credit})")
+
+    data = _load_accounting_data()
+    v_no = f"JV-{date.today().strftime('%Y')}-{len(data.get('journal_entries', [])) + 1:04d}"
+
+    entry = {
+        "voucher_no": v_no,
+        "date": str(date.today()),
+        "description_km": desc_km,
+        "description_en": desc_en,
+        "branch": branch,
+        "currency": curr,
+        "total_amount": round(sum_debit, 2),
+        "lines": lines,
+    }
+
+    data.setdefault("journal_entries", []).insert(0, entry)
+    _save_accounting_data(data)
+
+    return {"ok": True, "voucher": entry}

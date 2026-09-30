@@ -56,4 +56,10 @@ PERMISSION_CATALOG: list[dict] = [
     {"code": "telegram_bot.manage", "module": "telegram_bot", "description": "Configure Telegram bot tokens and trigger broadcast dispatches"},
     {"code": "leads.view", "module": "leads", "description": "View public online loan intake leads and pre-qualification requests"},
     {"code": "leads.manage", "module": "leads", "description": "Process, assign, and convert online loan leads into active loans"},
+    {"code": "bakong.view", "module": "bakong", "description": "View Bakong KHQR real-time payment feed and reconciliation status"},
+    {"code": "bakong.manage", "module": "bakong", "description": "Reconcile unmatched Bakong KHQR transactions and generate dynamic QR payways"},
+    {"code": "scoring.view", "module": "scoring", "description": "View automated 5Cs credit scoring matrix and risk underwriting results"},
+    {"code": "scoring.manage", "module": "scoring", "description": "Run credit underwriting evaluations and adjust risk scoring parameters"},
+    {"code": "accounting.view", "module": "accounting", "description": "View General Ledger (GL) Chart of Accounts, Trial Balance, and financial statements"},
+    {"code": "accounting.manage", "module": "accounting", "description": "Post manual journal vouchers and manage accounting periods"},
 ]

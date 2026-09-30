@@ -69,6 +69,12 @@ class LoanApprovalDecision(BaseModel):
 
 class PrepaymentRequest(BaseModel):
     amount: Decimal
+    penalty_amount: Decimal | None = Decimal("0")
+    penalty_rate_percent: Decimal | None = None
+    waived: bool = False
+    waiver_reason: str | None = None
+    notes: str | None = None
+    is_full_payoff: bool = False
 
 
 class RestructureRequest(BaseModel):
@@ -83,4 +89,23 @@ class WriteOffRequest(BaseModel):
 class LoanSecurityUpdate(BaseModel):
     collateral_info: dict | None = None
     guarantor_info: dict | None = None
+
+
+class PayoffQuoteOut(BaseModel):
+    loan_id: uuid.UUID
+    client_name: str | None = None
+    currency: str
+    original_principal: Decimal
+    total_installments: int
+    paid_installments: int
+    remaining_installments: int
+    outstanding_balance: Decimal
+    remaining_principal: Decimal
+    accrued_interest: Decimal
+    unearned_future_interest: Decimal
+    default_penalty_rate_percent: Decimal
+    suggested_penalty_amount: Decimal
+    is_penalty_applicable: bool
+    total_payoff_amount: Decimal
+    total_savings_amount: Decimal
 

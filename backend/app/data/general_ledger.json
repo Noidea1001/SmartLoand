@@ -1,0 +1,231 @@
+{
+  "chart_of_accounts": [
+    {
+      "code": "1110",
+      "name_km": "សាច់ប្រាក់ក្នុងឃ្លាំង & បេឡា",
+      "name_en": "Cash on Hand & Vault",
+      "category": "asset",
+      "debit_usd": 125400.0,
+      "credit_usd": 0.0,
+      "debit_khr": 52000000.0,
+      "credit_khr": 0.0
+    },
+    {
+      "code": "1120",
+      "name_km": "ប្រាក់បញ្ញើនៅធនាគារជាតិ NBC",
+      "name_en": "Balances with NBC (Reserve)",
+      "category": "asset",
+      "debit_usd": 250000.0,
+      "credit_usd": 0.0,
+      "debit_khr": 0.0,
+      "credit_khr": 0.0
+    },
+    {
+      "code": "1130",
+      "name_km": "ប្រាក់បញ្ញើនៅធនាគារពាណិជ្ជ",
+      "name_en": "Due from Banks (ABA/Acleda)",
+      "category": "asset",
+      "debit_usd": 85000.0,
+      "credit_usd": 0.0,
+      "debit_khr": 35000000.0,
+      "credit_khr": 0.0
+    },
+    {
+      "code": "1210",
+      "name_km": "ផលប័ត្រឥណទានសរុប (កម្ចីដើម)",
+      "name_en": "Gross Loan Portfolio",
+      "category": "asset",
+      "debit_usd": 680000.0,
+      "credit_usd": 0.0,
+      "debit_khr": 480000000.0,
+      "credit_khr": 0.0
+    },
+    {
+      "code": "1290",
+      "name_km": "សំវិធានធនឥណទានអាក់ខាន",
+      "name_en": "Allowance for Loan Impairment",
+      "category": "contra_asset",
+      "debit_usd": 0.0,
+      "credit_usd": 18500.0,
+      "debit_khr": 0.0,
+      "credit_khr": 14200000.0
+    },
+    {
+      "code": "2110",
+      "name_km": "ប្រាក់បញ្ញើសន្សំអតិថិជន",
+      "name_en": "Customer Deposits & Savings",
+      "category": "liability",
+      "debit_usd": 0.0,
+      "credit_usd": 320000.0,
+      "debit_khr": 0.0,
+      "credit_khr": 120000000.0
+    },
+    {
+      "code": "2210",
+      "name_km": "កម្ចីពីស្ថាប័នដៃគូអភិវឌ្ឍន៍",
+      "name_en": "Borrowings from Lenders",
+      "category": "liability",
+      "debit_usd": 0.0,
+      "credit_usd": 400000.0,
+      "debit_khr": 0.0,
+      "credit_khr": 200000000.0
+    },
+    {
+      "code": "3110",
+      "name_km": "ដើមទុនចុះបញ្ជីរបស់ស្ថាប័ន",
+      "name_en": "Paid-up Share Capital",
+      "category": "equity",
+      "debit_usd": 0.0,
+      "credit_usd": 350000.0,
+      "debit_khr": 0.0,
+      "credit_khr": 150000000.0
+    },
+    {
+      "code": "3210",
+      "name_km": "ប្រាក់ចំណេញរក្សាទុក",
+      "name_en": "Retained Earnings",
+      "category": "equity",
+      "debit_usd": 0.0,
+      "credit_usd": 31900.0,
+      "debit_khr": 0.0,
+      "credit_khr": 42800000.0
+    },
+    {
+      "code": "4110",
+      "name_km": "ចំណូលការប្រាក់ពីកម្ចី",
+      "name_en": "Interest Income from Loans",
+      "category": "revenue",
+      "debit_usd": 0.0,
+      "credit_usd": 45000.0,
+      "debit_khr": 0.0,
+      "credit_khr": 48000000.0
+    },
+    {
+      "code": "4120",
+      "name_km": "ចំណូលកម្រៃសេវារដ្ឋបាលកម្ចី",
+      "name_en": "Loan Processing & Admin Fees",
+      "category": "revenue",
+      "debit_usd": 0.0,
+      "credit_usd": 6500.0,
+      "debit_khr": 0.0,
+      "credit_khr": 7000000.0
+    },
+    {
+      "code": "4130",
+      "name_km": "ចំណូលប្រាក់ពិន័យយឺតយ៉ាវ",
+      "name_en": "Late Payment Penalty Income",
+      "category": "revenue",
+      "debit_usd": 0.0,
+      "credit_usd": 2200.0,
+      "debit_khr": 0.0,
+      "credit_khr": 2500000.0
+    },
+    {
+      "code": "5110",
+      "name_km": "ចំណាយសំវិធានធនឥណទាន (NBC)",
+      "name_en": "Loan Loss Provision Expense",
+      "category": "expense",
+      "debit_usd": 18500.0,
+      "credit_usd": 0.0,
+      "debit_khr": 14200000.0,
+      "credit_khr": 0.0
+    },
+    {
+      "code": "5210",
+      "name_km": "ចំណាយប្រាក់បៀវត្ស & បុគ្គលិក",
+      "name_en": "Staff Salaries & Benefits",
+      "category": "expense",
+      "debit_usd": 28000.0,
+      "credit_usd": 0.0,
+      "debit_khr": 28000000.0,
+      "credit_khr": 0.0
+    },
+    {
+      "code": "5310",
+      "name_km": "ចំណាយប្រតិបត្តិការទូទៅ & ការិយាល័យ",
+      "name_en": "General Office & Admin Expenses",
+      "category": "expense",
+      "debit_usd": 7200.0,
+      "credit_usd": 0.0,
+      "debit_khr": 8300000.0,
+      "credit_khr": 0.0
+    }
+  ],
+  "journal_entries": [
+    {
+      "voucher_no": "JV-2026-0091",
+      "date": "2026-09-30",
+      "description_km": "ការបើកផ្តល់កម្ចីថ្មីជូនអតិថិជន (Disbursement #LN-0012)",
+      "description_en": "Loan Disbursement to Client #LN-0012",
+      "branch": "Head Office (ភ្នំពេញ)",
+      "currency": "USD",
+      "total_amount": 5000.0,
+      "lines": [
+        {
+          "account_code": "1210",
+          "account_name": "Gross Loan Portfolio",
+          "debit": 5000.0,
+          "credit": 0.0
+        },
+        {
+          "account_code": "1110",
+          "account_name": "Cash on Hand & Vault",
+          "debit": 0.0,
+          "credit": 5000.0
+        }
+      ]
+    },
+    {
+      "voucher_no": "JV-2026-0092",
+      "date": "2026-09-30",
+      "description_km": "ការទទួលប្រាក់សងកម្ចីប្រចាំខែ (Principal + Interest #LN-0045)",
+      "description_en": "Loan Repayment Received #LN-0045",
+      "branch": "Battambang Branch",
+      "currency": "KHR",
+      "total_amount": 620000.0,
+      "lines": [
+        {
+          "account_code": "1110",
+          "account_name": "Cash on Hand & Vault",
+          "debit": 620000.0,
+          "credit": 0.0
+        },
+        {
+          "account_code": "1210",
+          "account_name": "Gross Loan Portfolio",
+          "debit": 0.0,
+          "credit": 500000.0
+        },
+        {
+          "account_code": "4110",
+          "account_name": "Interest Income from Loans",
+          "debit": 0.0,
+          "credit": 120000.0
+        }
+      ]
+    },
+    {
+      "voucher_no": "JV-2026-0093",
+      "date": "2026-09-30",
+      "description_km": "ការកត់ត្រាសំវិធានធនឥណទានតាមប្រកាស NBC (EOD Accrual)",
+      "description_en": "NBC Loan Loss Provision Accrual",
+      "branch": "Head Office",
+      "currency": "USD",
+      "total_amount": 1250.0,
+      "lines": [
+        {
+          "account_code": "5110",
+          "account_name": "Loan Loss Provision Expense",
+          "debit": 1250.0,
+          "credit": 0.0
+        },
+        {
+          "account_code": "1290",
+          "account_name": "Allowance for Loan Impairment",
+          "debit": 0.0,
+          "credit": 1250.0
+        }
+      ]
+    }
+  ]
+}

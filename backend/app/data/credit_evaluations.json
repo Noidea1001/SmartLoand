@@ -1,0 +1,68 @@
+[
+  {
+    "id": "UWD-2026-081",
+    "borrower_name": "ជា វុទ្ធី (Chea Vuthea)",
+    "national_id": "010884920",
+    "phone": "012 884 920",
+    "requested_amount": 5000.0,
+    "currency": "USD",
+    "monthly_income": 1200.0,
+    "monthly_expenses": 450.0,
+    "monthly_debt_repayment": 180.0,
+    "proposed_monthly_installment": 260.0,
+    "collateral_value": 15000.0,
+    "collateral_type": "ប្លង់រឹងលំនៅឋាន (Hard Title Deed)",
+    "cbc_status": "clean",
+    "scores": {
+      "character": 92,
+      "capacity": 88,
+      "capital": 80,
+      "collateral": 95,
+      "conditions": 85,
+      "overall_score": 788
+    },
+    "metrics": {
+      "dscr": 1.74,
+      "dti_pct": 36.6,
+      "ltv_pct": 33.3
+    },
+    "risk_tier": "A+",
+    "recommendation": "AUTO_APPROVE",
+    "max_approved_limit": 8500.0,
+    "evaluated_by": "ប្រព័ន្ធវាយតម្លៃស្វ័យប្រវត្តិ (AI Underwriter)",
+    "created_at": "2026-09-30 09:12"
+  },
+  {
+    "id": "UWD-2026-082",
+    "borrower_name": "ស៊ុន ចាន់ថុល (Sun Chanthol)",
+    "national_id": "020993184",
+    "phone": "097 334 1122",
+    "requested_amount": 12000000.0,
+    "currency": "KHR",
+    "monthly_income": 2400000.0,
+    "monthly_expenses": 1300000.0,
+    "monthly_debt_repayment": 300000.0,
+    "proposed_monthly_installment": 620000.0,
+    "collateral_value": 25000000.0,
+    "collateral_type": "ប្លង់ទន់ភូមិឋាន (Soft Title Deed)",
+    "cbc_status": "clean",
+    "scores": {
+      "character": 84,
+      "capacity": 72,
+      "capital": 68,
+      "collateral": 75,
+      "conditions": 70,
+      "overall_score": 674
+    },
+    "metrics": {
+      "dscr": 1.2,
+      "dti_pct": 38.3,
+      "ltv_pct": 48.0
+    },
+    "risk_tier": "B",
+    "recommendation": "COMMITTEE_REVIEW",
+    "max_approved_limit": 10000000.0,
+    "evaluated_by": "ប្រព័ន្ធវាយតម្លៃស្វ័យប្រវត្តិ (AI Underwriter)",
+    "created_at": "2026-09-30 10:45"
+  }
+]

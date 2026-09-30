@@ -6,7 +6,7 @@
     "last_updated": "2026-09-30"
   },
   "drawer": {
-    "usd_balance": 3500.0,
+    "usd_balance": 13500.0,
     "khr_balance": 12500000.0,
     "vault_limit_usd": 10000.0,
     "vault_limit_khr": 40000000.0
@@ -38,6 +38,15 @@
     }
   ],
   "drawer_logs": [
+    {
+      "id": "PETTY-9E9EDA",
+      "type": "replenishment",
+      "currency": "USD",
+      "amount": 10000.0,
+      "reason": "បញ្ចូលថវិកាបេឡារង",
+      "officer": "Sokha Owner",
+      "date": "2026-09-30 06:00"
+    },
     {
       "id": "PETTY-001",
       "type": "replenishment",

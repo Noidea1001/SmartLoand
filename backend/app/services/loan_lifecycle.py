@@ -11,36 +11,91 @@ from app.models.user import User
 from app.services import audit
 
 
-def record_prepayment(db: Session, loan: Loan, amount: Decimal, actor: User) -> LoanEvent:
-    """Applies a lump-sum prepayment against the earliest unpaid
-    installments (oldest first), then logs the event."""
+def record_prepayment(
+    db: Session,
+    loan: Loan,
+    amount: Decimal,
+    actor: User,
+    penalty_amount: Decimal = Decimal("0"),
+    penalty_rate_percent: Decimal | None = None,
+    waived: bool = False,
+    waiver_reason: str | None = None,
+    notes: str | None = None,
+    is_full_payoff: bool = False,
+) -> LoanEvent:
+    """Applies a lump-sum prepayment or full early payoff against the loan,
+    including flexible penalty fee calculation, waiver tracking, and loan closure."""
 
     remaining = amount
+    now_utc = datetime.utcnow()
+
     unpaid = db.execute(
         select(Installment)
         .where(Installment.loan_id == loan.id, Installment.status != "paid")
         .order_by(Installment.due_date)
     ).scalars().all()
 
-    for inst in unpaid:
-        if remaining <= 0:
-            break
-        outstanding = inst.amount_due - inst.amount_paid
-        applied = min(outstanding, remaining)
-        inst.amount_paid += applied
-        remaining -= applied
-        if inst.amount_paid >= inst.amount_due:
+    if is_full_payoff:
+        for inst in unpaid:
+            inst.amount_paid = inst.amount_due
             inst.status = "paid"
-            inst.paid_at = datetime.utcnow()
+            inst.paid_at = now_utc
+        loan.status = "paid"
+        remaining = Decimal("0")
+    else:
+        for inst in unpaid:
+            if remaining <= 0:
+                break
+            outstanding = inst.amount_due - inst.amount_paid
+            applied = min(outstanding, remaining)
+            inst.amount_paid += applied
+            remaining -= applied
+            if inst.amount_paid >= inst.amount_due:
+                inst.status = "paid"
+                inst.paid_at = now_utc
+
+        remaining_unpaid = db.execute(
+            select(Installment).where(Installment.loan_id == loan.id, Installment.status != "paid")
+        ).scalars().all()
+        if not remaining_unpaid:
+            loan.status = "paid"
+
+    event_details = {
+        "unapplied_remainder": str(remaining),
+        "principal_amount": str(amount),
+        "penalty_amount": str(penalty_amount),
+        "penalty_rate_percent": str(penalty_rate_percent) if penalty_rate_percent is not None else None,
+        "waived": waived,
+        "waiver_reason": waiver_reason,
+        "notes": notes,
+        "is_full_payoff": is_full_payoff or (loan.status == "paid"),
+        "loan_status": loan.status,
+    }
 
     event = LoanEvent(
-        loan_id=loan.id, event_type="prepayment", amount=amount,
-        details={"unapplied_remainder": str(remaining)}, created_by_user_id=actor.id,
+        loan_id=loan.id,
+        event_type="prepayment",
+        amount=amount + (Decimal("0") if waived else penalty_amount),
+        details=event_details,
+        created_by_user_id=actor.id,
     )
     db.add(event)
+
+    audit_msg = f"recorded prepayment of {amount}"
+    if is_full_payoff or loan.status == "paid":
+        audit_msg = f"recorded full early payoff of {amount}"
+    if penalty_amount > 0 and not waived:
+        audit_msg += f" (early settlement penalty: {penalty_amount})"
+    elif waived:
+        audit_msg += f" (penalty waived: {waiver_reason or 'Management Discretion'})"
+
     audit.log_activity(
-        db, tenant_id=loan.tenant_id, actor_user_id=actor.id,
-        action=f"recorded prepayment of {amount}", entity_type="loan", entity_id=loan.id,
+        db,
+        tenant_id=loan.tenant_id,
+        actor_user_id=actor.id,
+        action=audit_msg,
+        entity_type="loan",
+        entity_id=loan.id,
     )
     return event
 

@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
@@ -13,7 +14,7 @@ from app.models.loan import Loan, LoanApproval
 from app.models.user import User
 from app.schemas.loan import (
     InstallmentOut, LoanApprovalDecision, LoanCreate, LoanOut, LoanSecurityUpdate,
-    PaginatedLoans, PrepaymentRequest, RestructureRequest, WriteOffRequest,
+    PaginatedLoans, PayoffQuoteOut, PrepaymentRequest, RestructureRequest, WriteOffRequest,
 )
 from app.services import loan_approval, loan_lifecycle
 
@@ -187,6 +188,88 @@ def decide_loan(
     return _enrich_loan_out(loan, client.current_name if client else None)
 
 
+@router.get("/{loan_id}/payoff-quote", response_model=PayoffQuoteOut)
+def get_loan_payoff_quote(
+    loan_id: uuid.UUID,
+    current_user: CurrentUser = Depends(require_permission("loans.view")),
+    db: Session = Depends(get_db),
+):
+    loan = _get_loan_or_404(db, loan_id, current_user.tenant_id)
+    client = db.get(Client, loan.client_id)
+    client_name = client.current_name if client else None
+
+    all_inst = db.execute(
+        select(Installment).where(Installment.loan_id == loan.id).order_by(Installment.installment_number)
+    ).scalars().all()
+
+    total_inst = len(all_inst)
+    paid_inst = [i for i in all_inst if i.status == "paid"]
+    unpaid_inst = [i for i in all_inst if i.status != "paid"]
+
+    paid_count = len(paid_inst)
+    remaining_count = len(unpaid_inst)
+
+    outstanding_balance = sum((Decimal(str(i.amount_due)) - Decimal(str(i.amount_paid or 0))) for i in unpaid_inst)
+
+    orig_principal = Decimal(str(loan.principal_amount))
+    monthly_rate = Decimal(str(loan.interest_rate_percent)) / Decimal("100")
+    term = loan.term_months
+
+    if loan.interest_type == "flat" and term > 0:
+        monthly_principal = (orig_principal / Decimal(term)).quantize(Decimal("0.01"))
+        monthly_interest = (orig_principal * monthly_rate).quantize(Decimal("0.01"))
+        remaining_principal = max(Decimal("0"), orig_principal - (monthly_principal * Decimal(paid_count)))
+        unearned_future_interest = max(Decimal("0"), monthly_interest * Decimal(remaining_count))
+        accrued_interest = monthly_interest if remaining_count > 0 else Decimal("0")
+    else:
+        if term > 0 and paid_count < term:
+            balance = orig_principal
+            unearned_interest = Decimal("0")
+            for idx, inst in enumerate(all_inst, start=1):
+                interest_part = (balance * monthly_rate).quantize(Decimal("0.01"))
+                principal_part = Decimal(str(inst.amount_due)) - interest_part
+                if idx > paid_count:
+                    unearned_interest += interest_part
+                else:
+                    balance = max(Decimal("0"), balance - principal_part)
+            remaining_principal = balance
+            unearned_future_interest = unearned_interest
+            accrued_interest = (remaining_principal * monthly_rate).quantize(Decimal("0.01")) if remaining_count > 0 else Decimal("0")
+        else:
+            remaining_principal = Decimal("0")
+            unearned_future_interest = Decimal("0")
+            accrued_interest = Decimal("0")
+
+    if remaining_principal > outstanding_balance and outstanding_balance > 0:
+        remaining_principal = outstanding_balance
+
+    # Default early payoff penalty rate: 2% on remaining principal (if more than 1 installment remains)
+    default_penalty_rate = Decimal("2.0") if remaining_count > 1 else Decimal("0.0")
+    suggested_penalty = (remaining_principal * (default_penalty_rate / Decimal("100"))).quantize(Decimal("0.01"))
+
+    total_payoff = (remaining_principal + accrued_interest + suggested_penalty).quantize(Decimal("0.01"))
+    total_savings = max(Decimal("0"), (unearned_future_interest - suggested_penalty).quantize(Decimal("0.01")))
+
+    return PayoffQuoteOut(
+        loan_id=loan.id,
+        client_name=client_name,
+        currency=loan.principal_currency,
+        original_principal=orig_principal,
+        total_installments=total_inst,
+        paid_installments=paid_count,
+        remaining_installments=remaining_count,
+        outstanding_balance=outstanding_balance.quantize(Decimal("0.01")),
+        remaining_principal=remaining_principal.quantize(Decimal("0.01")),
+        accrued_interest=accrued_interest.quantize(Decimal("0.01")),
+        unearned_future_interest=unearned_future_interest.quantize(Decimal("0.01")),
+        default_penalty_rate_percent=default_penalty_rate,
+        suggested_penalty_amount=suggested_penalty,
+        is_penalty_applicable=remaining_count > 0,
+        total_payoff_amount=total_payoff,
+        total_savings_amount=total_savings,
+    )
+
+
 @router.post("/{loan_id}/prepay", response_model=LoanOut)
 def prepay_loan(
     loan_id: uuid.UUID, payload: PrepaymentRequest,
@@ -196,7 +279,18 @@ def prepay_loan(
     loan = _get_loan_or_404(db, loan_id, current_user.tenant_id)
     if loan.status not in ("active", "overdue"):
         raise HTTPException(status_code=400, detail="Loan is not active")
-    loan_lifecycle.record_prepayment(db, loan, payload.amount, current_user.user)
+    loan_lifecycle.record_prepayment(
+        db,
+        loan,
+        payload.amount,
+        current_user.user,
+        penalty_amount=payload.penalty_amount or Decimal("0"),
+        penalty_rate_percent=payload.penalty_rate_percent,
+        waived=payload.waived,
+        waiver_reason=payload.waiver_reason,
+        notes=payload.notes,
+        is_full_payoff=payload.is_full_payoff,
+    )
     db.commit()
     db.refresh(loan)
     client = db.get(Client, loan.client_id)
