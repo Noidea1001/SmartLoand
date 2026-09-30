@@ -1,0 +1,78 @@
+services:
+  db:
+    image: postgres:16
+    container_name: smartloan_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: smartloan
+      POSTGRES_USER: smartloan
+      POSTGRES_PASSWORD: smartloan_dev_password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U smartloan -d smartloan"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    container_name: smartloan_backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://smartloan_app:smartloan_app_dev_password@db:5432/smartloan
+      MIGRATION_DATABASE_URL: postgresql://smartloan:smartloan_dev_password@db:5432/smartloan
+      ENVIRONMENT: development
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./backend/app:/app/app
+      - ./backend/alembic:/app/alembic
+      - ./backend/alembic.ini:/app/alembic.ini
+      - ./backend/scripts:/app/scripts
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+
+  frontend:
+    build: ./frontend
+    container_name: smartloan_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      VITE_API_BASE_URL: http://localhost:8001/api/v1
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/index.html:/app/index.html
+    command: npm run dev
+
+  backup:
+    image: postgres:16
+    container_name: smartloan_backup
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: smartloan_dev_password
+    volumes:
+      - ./backups:/backups
+    entrypoint: >
+      sh -c "
+      while true; do
+        FILENAME=/backups/smartloan_$$(date +%Y%m%d_%H%M%S).sql.gz;
+        echo \"[backup] dumping to $$FILENAME\";
+        pg_dump -h db -U smartloan -d smartloan | gzip > \"$$FILENAME\";
+        find /backups -name '*.sql.gz' -mtime +14 -delete;
+        sleep 86400;
+      done
+      "
+
+volumes:
+  pgdata:
