@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.api.v1.router import api_router
 from app.core.config import settings
 from app.db.session import engine, get_db
-from app.models.permission import Permission
+from app.models.permission import Permission, Role, RolePermission
 from app.services.permission_catalog import PERMISSION_CATALOG
 
 app = FastAPI(title=settings.app_name)
@@ -30,12 +30,21 @@ def on_startup() -> None:
     # is present — safe to re-run, since it skips codes that already exist.
     with Session(engine) as db:
         existing_codes = {p.code for p in db.execute(select(Permission)).scalars().all()}
-        added = False
+        new_perms: list[Permission] = []
         for perm in PERMISSION_CATALOG:
             if perm["code"] not in existing_codes:
-                db.add(Permission(**perm))
-                added = True
-        if added:
+                p = Permission(**perm)
+                db.add(p)
+                new_perms.append(p)
+        if new_perms:
+            db.flush()
+            # Automatically grant new permissions to Owner and system default roles
+            owner_roles = db.execute(
+                select(Role).where((Role.is_system_default == True) | (Role.name == "Owner"))
+            ).scalars().all()
+            for role in owner_roles:
+                for p in new_perms:
+                    db.add(RolePermission(role_id=role.id, permission_id=p.id))
             db.commit()
 
 

@@ -1,0 +1,62 @@
+[
+  {
+    "id": "WO-2026-001",
+    "loan_id": null,
+    "client_name": "សុខ វិបុល (Sok Vibul)",
+    "client_phone": "012 889 912",
+    "written_off_principal": 1200.0,
+    "written_off_interest": 180.0,
+    "currency": "USD",
+    "write_off_date": "2026-03-15",
+    "approval_reference": "BOD-APPR-2026-012",
+    "recovery_officer": "មាស សំណាង (Meas Samnang)",
+    "reason": "អាជីវកម្មក្ស័យធន និងបាត់បង់លទ្ធភាពសងលើសពី 360 ថ្ងៃ (Business bankruptcy & overdue >360 DPD)",
+    "status": "partial_recovered",
+    "total_recovered": 580.0,
+    "remaining_unrecovered": 800.0,
+    "recovery_history": [
+      {
+        "receipt_no": "REC-WO-2026-615",
+        "amount": 130.0,
+        "currency": "USD",
+        "date": "2026-09-30",
+        "officer": "Sokha Owner",
+        "notes": ""
+      },
+      {
+        "receipt_no": "REC-WO-001",
+        "amount": 450.0,
+        "currency": "USD",
+        "date": "2026-06-10",
+        "officer": "មាស សំណាង",
+        "notes": "ការប្រមូលបានពីការសម្របសម្រួលលក់ទ្រព្យបន្ទាប់បន្សំ"
+      }
+    ]
+  },
+  {
+    "id": "WO-2026-002",
+    "loan_id": null,
+    "client_name": "ចាន់ ធីតា (Chan Thida)",
+    "client_phone": "097 554 123",
+    "written_off_principal": 4500000.0,
+    "written_off_interest": 350000.0,
+    "currency": "KHR",
+    "write_off_date": "2026-01-20",
+    "approval_reference": "BOD-APPR-2026-004",
+    "recovery_officer": "កែវ សុភា (Keo Sophea)",
+    "reason": "ចំណាកស្រុកទៅក្រៅប្រទេស មិនអាចទាក់ទងបាន (Migrated abroad)",
+    "status": "fully_recovered",
+    "total_recovered": 4850000.0,
+    "remaining_unrecovered": 0.0,
+    "recovery_history": [
+      {
+        "receipt_no": "REC-WO-2026-832",
+        "amount": 4850000.0,
+        "currency": "KHR",
+        "date": "2026-09-30",
+        "officer": "Sokha Owner",
+        "notes": ""
+      }
+    ]
+  }
+]

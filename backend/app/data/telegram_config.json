@@ -1,0 +1,27 @@
+{
+  "enabled": true,
+  "bot_token": "",
+  "chat_id": "@smartloan_cambodia_alerts",
+  "briefing_time": "08:00 AM",
+  "notify_delinquency": true,
+  "notify_approvals": true,
+  "notify_eod": true,
+  "dispatch_logs": [
+    {
+      "id": "TG-DISP-9DF33E",
+      "dispatched_at": "2026-09-30 01:48:12",
+      "chat_id": "@smartloan_cambodia_alerts",
+      "status": "simulated_success",
+      "recipient": "@smartloan_cambodia_alerts",
+      "content_summary": "របាយការណ៍សង្ខេប 2026-09-30: 0 វគ្គត្រូវសង, 0 រង់ចាំអនុម័ត"
+    },
+    {
+      "id": "TG-DISP-001",
+      "dispatched_at": "2026-09-30 08:00:00",
+      "chat_id": "@smartloan_cambodia_alerts",
+      "status": "simulated_success",
+      "recipient": "Smart Loan Executive Group",
+      "content_summary": "របាយការណ៍សង្ខេបពេលព្រឹក: 14 វគ្គត្រូវសងថ្ងៃនេះ ($4,250), 3 កម្ចីរង់ចាំអនុម័ត"
+    }
+  ]
+}

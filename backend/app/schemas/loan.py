@@ -23,6 +23,7 @@ class LoanCreate(BaseModel):
 class LoanOut(BaseModel):
     id: uuid.UUID
     client_id: uuid.UUID
+    client_name: str | None = None
     product_id: uuid.UUID | None
     principal_amount: Decimal
     principal_currency: str

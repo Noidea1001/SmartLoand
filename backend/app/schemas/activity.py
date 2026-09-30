@@ -7,9 +7,11 @@ from pydantic import BaseModel
 class ActivityLogOut(BaseModel):
     id: uuid.UUID
     actor_user_id: uuid.UUID | None
+    actor_name: str | None = None
     action: str
     entity_type: str
     entity_id: uuid.UUID
+    log_metadata: dict | None = None
     created_at: datetime
 
     class Config:

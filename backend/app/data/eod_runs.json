@@ -1,0 +1,26 @@
+[
+  {
+    "run_id": "EOD-732FF4B5",
+    "executed_at": "2026-09-30T01:01:11.178862",
+    "date": "2026-09-30",
+    "executed_by": "Sokha Owner",
+    "loans_evaluated": 3,
+    "penalties_applied": 0,
+    "total_penalty_usd": 0.0,
+    "total_penalty_khr": 0,
+    "reclassified_loans": 0,
+    "status": "completed_success"
+  },
+  {
+    "run_id": "EOD-F0089065",
+    "executed_at": "2026-09-30T01:51:35.589919",
+    "date": "2026-09-30",
+    "executed_by": "Sokha Owner",
+    "loans_evaluated": 3,
+    "penalties_applied": 0,
+    "total_penalty_usd": 0.0,
+    "total_penalty_khr": 0,
+    "reclassified_loans": 0,
+    "status": "completed_success"
+  }
+]
